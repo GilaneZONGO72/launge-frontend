@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API = "http://localhost:3000";
-
+const API = "https://launge-backend-production.up.railway.app";
 const s = {
   page: { minHeight: "100vh", background: "#000", color: "#FFD700", fontFamily: "sans-serif" },
   header: { background: "#111", padding: "16px 20px", borderBottom: "2px solid #FFD700", display: "flex", justifyContent: "space-between", alignItems: "center" },
