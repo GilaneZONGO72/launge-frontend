@@ -20,7 +20,7 @@ export default function App() {
   const [commandes, setCommandes] = useState([]);
   const [restoId, setRestoId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const urlParams = new URLSearchParams(window.location.search);
+ const [urlParams] = useState(() => new URLSearchParams(window.location.search));
 const qrCode = urlParams.get('code');
 const qrTable = urlParams.get('table');
 
