@@ -112,8 +112,7 @@ export default function App() {
     setPanier(p => ({ ...p, [id]: nouveau }));
   };
 
-  const lienQR = (table) => `${window.location.origin}/menu/${gerant?.code_unique}/table-${table}`;
-
+ const lienQR = (table) => `${window.location.origin}?code=${gerant?.code_unique}&table=${table}`;
   // ── ACCUEIL ──
   if (vue === "accueil") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, textAlign: "center" }}>
