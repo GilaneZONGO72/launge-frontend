@@ -20,7 +20,9 @@ export default function App() {
   const [commandes, setCommandes] = useState([]);
   const [restoId, setRestoId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [nbTables, setNbTables] = useState(5);
+  const urlParams = new URLSearchParams(window.location.search);
+const qrCode = urlParams.get('code');
+const qrTable = urlParams.get('table');
 
   const [inscription, setInscription] = useState({ nom: "", ville: "", telephone: "", email: "", mot_de_passe: "" });
   const [connexion, setConnexion] = useState({ email: "", mot_de_passe: "" });
@@ -114,6 +116,19 @@ export default function App() {
 
  const lienQR = (table) => `${window.location.origin}?code=${gerant?.code_unique}&table=${table}`;
   // ── ACCUEIL ──
+  if (qrCode && qrTable) {
+  return (
+    <div style={s.page}>
+      <div style={s.header}>
+        <span style={{ fontWeight: 800 }}>🍽️ LAUNGE · Table {qrTable}</span>
+      </div>
+      <div style={{ padding: 20, textAlign: "center", marginTop: 40 }}>
+        <p style={{ fontSize: 18, opacity: 0.7 }}>Chargement du menu...</p>
+        <p style={{ fontSize: 13, opacity: 0.4 }}>Code : {qrCode}</p>
+      </div>
+    </div>
+  );
+}
   if (vue === "accueil") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, textAlign: "center" }}>
       <div style={{ fontSize: 80 }}>🍽️</div>
