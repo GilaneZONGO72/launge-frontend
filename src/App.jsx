@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 
 const API = "https://launge-backend-production.up.railway.app";
+
 const s = {
   page: { minHeight: "100vh", background: "#000", color: "#FFD700", fontFamily: "sans-serif" },
   header: { background: "#111", padding: "16px 20px", borderBottom: "2px solid #FFD700", display: "flex", justifyContent: "space-between", alignItems: "center" },
@@ -17,8 +19,8 @@ export default function App() {
   const [commandes, setCommandes] = useState([]);
   const [restoId, setRestoId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [nbTables, setNbTables] = useState(5);
 
-  // Formulaires
   const [inscription, setInscription] = useState({ nom: "", ville: "", telephone: "", email: "", mot_de_passe: "" });
   const [connexion, setConnexion] = useState({ email: "", mot_de_passe: "" });
   const [nouveauPlat, setNouveauPlat] = useState({ nom: "", prix: "", categorie: "Boissons", emoji: "🍽️", stock: "", seuil_alerte: "" });
@@ -66,7 +68,6 @@ export default function App() {
     setLoading(false);
     if (data.error) return alert("Erreur : " + data.error);
     setGerant(data.restaurant);
-    localStorage.setItem("token", data.token);
     chargerMenu(data.restaurant.id);
     chargerCommandes(data.restaurant.id);
     setVue("gerant");
@@ -110,6 +111,8 @@ export default function App() {
     setPanier(p => ({ ...p, [id]: nouveau }));
   };
 
+  const lienQR = (table) => `${window.location.origin}/menu/${gerant?.code_unique}/table-${table}`;
+
   // ── ACCUEIL ──
   if (vue === "accueil") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, textAlign: "center" }}>
@@ -118,7 +121,7 @@ export default function App() {
       <p style={{ opacity: 0.5, marginBottom: 48, fontSize: 14 }}>Smart Dining · Cameroun</p>
       <div style={{ width: "100%", maxWidth: 320 }}>
         <button onClick={() => setVue("login-gerant")} style={{ ...s.btn("#FFD700"), marginBottom: 16 }}>🏪 Espace Gérant</button>
-        <button onClick={() => { setRestoId(gerant?.id); setVue("menu"); }} style={s.btn("#111")}>📱 Je suis un client</button>
+        <button onClick={() => setVue("menu")} style={s.btn("#111")}>📱 Je suis un client</button>
       </div>
     </div>
   );
@@ -240,13 +243,15 @@ export default function App() {
         <button onClick={() => { setGerant(null); setVue("accueil"); }} style={{ background: "transparent", border: "1px solid #FFD700", borderRadius: 8, color: "#FFD700", cursor: "pointer", padding: "6px 12px", fontSize: 12 }}>Déconnexion</button>
       </div>
 
-      <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022" }}>
-        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"]].map(([id, icon]) => (
-          <button key={id} onClick={() => setOnglet(id)} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent" }}>{icon} {id}</button>
+      <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022", overflowX: "auto" }}>
+        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["qrcodes", "📱"]].map(([id, icon]) => (
+          <button key={id} onClick={() => setOnglet(id)} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent", whiteSpace: "nowrap" }}>{icon} {id}</button>
         ))}
       </div>
 
       <div style={{ padding: 16 }}>
+
+        {/* DASHBOARD */}
         {onglet === "dashboard" && (
           <div>
             <div style={{ ...s.card, textAlign: "center" }}>
@@ -254,7 +259,7 @@ export default function App() {
               <p style={{ fontSize: 32, fontWeight: 900 }}>{commandes.reduce((a, c) => a + c.total, 0).toLocaleString()} FCFA</p>
               <p style={{ opacity: 0.5 }}>{commandes.length} commande(s)</p>
             </div>
-            <div style={{ ...s.card }}>
+            <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 8 }}>⚠️ Stock faible</p>
               {menu.filter(i => i.stock <= i.seuil_alerte).map(i => (
                 <div key={i.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 4 }}>
@@ -264,9 +269,14 @@ export default function App() {
               ))}
               {menu.filter(i => i.stock <= i.seuil_alerte).length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>✅ Tout est en stock !</p>}
             </div>
+            <div style={{ ...s.card }}>
+              <p style={{ fontWeight: 700, marginBottom: 4 }}>🔑 Votre code unique</p>
+              <p style={{ fontSize: 20, fontWeight: 900, color: "#FFD700", letterSpacing: 4 }}>{gerant?.code_unique}</p>
+            </div>
           </div>
         )}
 
+        {/* MENU */}
         {onglet === "menu" && (
           <div>
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
@@ -293,6 +303,7 @@ export default function App() {
           </div>
         )}
 
+        {/* COMMANDES */}
         {onglet === "commandes" && (
           <div>
             {commandes.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune commande pour le moment.</p>}
@@ -307,6 +318,36 @@ export default function App() {
                   <span style={{ opacity: 0.6 }}>Total</span>
                   <span style={{ fontWeight: 800 }}>{c.total.toLocaleString()} FCFA</span>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* QR CODES */}
+        {onglet === "qrcodes" && (
+          <div>
+            <div style={{ ...s.card, borderColor: "#FFD700", marginBottom: 20 }}>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>⚙️ Nombre de tables</p>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button onClick={() => setNbTables(n => Math.max(1, n - 1))} style={{ background: "#333", border: "none", borderRadius: "50%", width: 36, height: 36, color: "#FFD700", cursor: "pointer", fontWeight: 800, fontSize: 18 }}>−</button>
+                <span style={{ fontWeight: 900, fontSize: 24, minWidth: 40, textAlign: "center" }}>{nbTables}</span>
+                <button onClick={() => setNbTables(n => n + 1)} style={{ background: "#FFD700", border: "none", borderRadius: "50%", width: 36, height: 36, color: "#000", cursor: "pointer", fontWeight: 800, fontSize: 18 }}>+</button>
+              </div>
+            </div>
+
+            {Array.from({ length: nbTables }, (_, i) => i + 1).map(table => (
+              <div key={table} style={{ ...s.card, textAlign: "center", marginBottom: 16 }}>
+                <p style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>📍 Table {table}</p>
+                <div style={{ background: "white", padding: 16, borderRadius: 12, display: "inline-block", marginBottom: 12 }}>
+                  <QRCode
+                    value={lienQR(table)}
+                    size={160}
+                    bgColor="white"
+                    fgColor="#000"
+                  />
+                </div>
+                <p style={{ fontSize: 11, opacity: 0.5, marginBottom: 8, wordBreak: "break-all" }}>{lienQR(table)}</p>
+                <button onClick={() => window.print()} style={{ ...s.btn("#FFD700"), maxWidth: 200, margin: "0 auto" }}>🖨️ Imprimer</button>
               </div>
             ))}
           </div>
