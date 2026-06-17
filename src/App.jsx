@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Routes, Route, useParams } from "react-router-dom";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 
 const API = "https://launge-backend-production.up.railway.app";
