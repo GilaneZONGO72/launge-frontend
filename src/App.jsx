@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useParams } from "react-router-dom";
-import { QRCodeSVG as QRCode } from "qrcode.react";
+import QRCode from "qrcode.react";
 
 const API = "https://launge-backend-production.up.railway.app";
 
@@ -20,10 +19,9 @@ export default function App() {
   const [commandes, setCommandes] = useState([]);
   const [restoId, setRestoId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [nbTables,setNbTables]= useState(5)
- const [urlParams] = useState(() => new URLSearchParams(window.location.search));
-const qrCode = urlParams.get('code');
-const qrTable = urlParams.get('table');
+  const [nbTables, setNbTables] = useState(5);
+  const [restos, setRestos] = useState([]);
+  const [recherche, setRecherche] = useState("");
 
   const [inscription, setInscription] = useState({ nom: "", ville: "", telephone: "", email: "", mot_de_passe: "" });
   const [connexion, setConnexion] = useState({ email: "", mot_de_passe: "" });
@@ -45,6 +43,12 @@ const qrTable = urlParams.get('table');
     const res = await fetch(`${API}/api/commandes/${id}`);
     const data = await res.json();
     setCommandes(data);
+  };
+
+  const chargerRestos = async () => {
+    const res = await fetch(`${API}/api/restaurants`);
+    const data = await res.json();
+    setRestos(data);
   };
 
   const inscrireGerant = async () => {
@@ -115,21 +119,9 @@ const qrTable = urlParams.get('table');
     setPanier(p => ({ ...p, [id]: nouveau }));
   };
 
- const lienQR = (table) => `${window.location.origin}?code=${gerant?.code_unique}&table=${table}`;
+  const lienQR = (table) => `${window.location.origin}?code=${gerant?.code_unique}&table=${table}`;
+
   // ── ACCUEIL ──
-  if (qrCode && qrTable) {
-  return (
-    <div style={s.page}>
-      <div style={s.header}>
-        <span style={{ fontWeight: 800 }}>🍽️ LAUNGE · Table {qrTable}</span>
-      </div>
-      <div style={{ padding: 20, textAlign: "center", marginTop: 40 }}>
-        <p style={{ fontSize: 18, opacity: 0.7 }}>Chargement du menu...</p>
-        <p style={{ fontSize: 13, opacity: 0.4 }}>Code : {qrCode}</p>
-      </div>
-    </div>
-  );
-}
   if (vue === "accueil") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, textAlign: "center" }}>
       <div style={{ fontSize: 80 }}>🍽️</div>
@@ -137,10 +129,33 @@ const qrTable = urlParams.get('table');
       <p style={{ opacity: 0.5, marginBottom: 48, fontSize: 14 }}>Smart Dining · Cameroun</p>
       <div style={{ width: "100%", maxWidth: 320 }}>
         <button onClick={() => setVue("login-gerant")} style={{ ...s.btn("#FFD700"), marginBottom: 16 }}>🏪 Espace Gérant</button>
-        <button onClick={() => setVue("menu")} style={s.btn("#111")}>📱 Je suis un client</button>
+        <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={s.btn("#111")}>📱 Je suis un client</button>
       </div>
     </div>
   );
+
+  // ── LISTE RESTOS ──
+  if (vue === "liste-restos") {
+    const filtres = restos.filter(r => r.nom.toLowerCase().includes(recherche.toLowerCase()));
+    return (
+      <div style={s.page}>
+        <div style={s.header}>
+          <span style={{ fontWeight: 800 }}>🍽️ Choisir un restaurant</span>
+          <button onClick={() => setVue("accueil")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
+        </div>
+        <div style={{ padding: 16 }}>
+          <input placeholder="🔍 Rechercher un restaurant..." value={recherche} onChange={e => setRecherche(e.target.value)} style={s.input} />
+          {filtres.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun restaurant trouvé.</p>}
+          {filtres.map(r => (
+            <div key={r.id} onClick={() => { setRestoId(r.id); chargerMenu(r.id); setVue("menu"); }} style={{ ...s.card, cursor: "pointer" }}>
+              <p style={{ margin: "0 0 4px", fontWeight: 700 }}>🏪 {r.nom}</p>
+              <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{r.ville}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // ── INSCRIPTION ──
   if (vue === "inscription") return (
@@ -185,7 +200,7 @@ const qrTable = urlParams.get('table');
     <div style={s.page}>
       <div style={s.header}>
         <span style={{ fontWeight: 800 }}>🍽️ LAUNGE</span>
-        <button onClick={() => setVue("accueil")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
+        <button onClick={() => setVue("liste-restos")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
       </div>
       <div style={{ padding: 16, paddingBottom: 100 }}>
         {menu.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun plat disponible.</p>}
@@ -231,7 +246,7 @@ const qrTable = urlParams.get('table');
           <p style={{ opacity: 0.6 }}>Total à payer</p>
           <p style={{ fontSize: 36, fontWeight: 900 }}>{totalPanier.toLocaleString()} FCFA</p>
         </div>
-        {["🟠 Orange Money", "🔵 MTN Mobile Money","Cash"].map(pm => (
+        {["🟠 Orange Money", "🔵 MTN Mobile Money", "💵 Cash"].map(pm => (
           <button key={pm} onClick={() => passerCommande(pm)} style={{ ...s.btn("#111"), marginBottom: 12 }}>{pm}</button>
         ))}
       </div>
