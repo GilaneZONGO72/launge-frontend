@@ -231,7 +231,7 @@ const qrTable = urlParams.get('table');
           <p style={{ opacity: 0.6 }}>Total à payer</p>
           <p style={{ fontSize: 36, fontWeight: 900 }}>{totalPanier.toLocaleString()} FCFA</p>
         </div>
-        {["🟠 Orange Money", "🔵 MTN Mobile Money"].map(pm => (
+        {["🟠 Orange Money", "🔵 MTN Mobile Money","Cash"].map(pm => (
           <button key={pm} onClick={() => passerCommande(pm)} style={{ ...s.btn("#111"), marginBottom: 12 }}>{pm}</button>
         ))}
       </div>
