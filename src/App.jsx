@@ -22,6 +22,7 @@ export default function App() {
   const [nbTables, setNbTables] = useState(5);
   const [restos, setRestos] = useState([]);
   const [recherche, setRecherche] = useState("");
+  const [numeroTable, setNumeroTable] = useState("T1");
 
   const [admin, setAdmin] = useState(null);
   const [restosAdmin, setRestosAdmin] = useState([]);
@@ -32,9 +33,36 @@ export default function App() {
   const [nouveauPlat, setNouveauPlat] = useState({ nom: "", prix: "", categorie: "Boissons", emoji: "🍽️", stock: "", seuil_alerte: "" });
   const [onglet, setOnglet] = useState("dashboard");
 
+  // ── DÉTECTION DE L'URL AU CHARGEMENT ──
   useEffect(() => {
-    if (window.location.pathname === "/admin-secret-launge") setVue("login-admin");
+    const path = window.location.pathname;
+
+    if (path === "/admin-secret-launge") {
+      setVue("login-admin");
+      return;
+    }
+
+    // Format attendu : /menu/CODE_UNIQUE/table-NUMERO
+    const match = path.match(/^\/menu\/([^/]+)\/table-(.+)$/);
+    if (match) {
+      const codeUnique = match[1];
+      const table = match[2];
+      setNumeroTable(table);
+      chargerMenuParCode(codeUnique);
+      setVue("menu");
+    }
   }, []);
+
+  const chargerMenuParCode = async (codeUnique) => {
+    const res = await fetch(`${API}/api/restaurants/code/${codeUnique}`);
+    const data = await res.json();
+    if (data.error) {
+      alert("Restaurant introuvable.");
+      return;
+    }
+    setRestoId(data.id);
+    chargerMenu(data.id);
+  };
 
   const totalPanier = Object.entries(panier).reduce((acc, [id, qte]) => {
     const item = menu.find(i => i.id === id);
@@ -110,7 +138,7 @@ export default function App() {
     const res = await fetch(`${API}/api/commandes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurant_id: restoId, numero_table: "T1", items, total: totalPanier, mode_paiement: modePaiement })
+      body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement })
     });
     const data = await res.json();
     if (data.error) return alert("Erreur : " + data.error);
@@ -127,7 +155,7 @@ export default function App() {
     setPanier(p => ({ ...p, [id]: nouveau }));
   };
 
-  const lienQR = (table) => `${window.location.origin}?code=${gerant?.code_unique}&table=${table}`;
+  const lienQR = (table) => `${window.location.origin}/menu/${gerant?.code_unique}/table-${table}`;
 
   // ── ADMIN ──
   const connecterAdmin = async () => {

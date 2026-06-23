@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/menu/(.*)", "destination": "/index.html" },
+    { "source": "/admin-secret-launge", "destination": "/index.html" }
   ]
 }
