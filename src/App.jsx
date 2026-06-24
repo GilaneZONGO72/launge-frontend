@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
+import { supabase } from "./supabaseClient";
 
 const API = "https://launge-backend-production.up.railway.app";
 
@@ -10,6 +11,9 @@ const s = {
   card: { background: "#111", borderRadius: 16, padding: 16, border: "1px solid #FFD70033", marginBottom: 12 },
   input: { background: "#222", border: "1px solid #FFD70055", borderRadius: 8, padding: "10px 14px", color: "#FFD700", fontSize: 14, width: "100%", boxSizing: "border-box", marginBottom: 10 },
 };
+
+const STATUT_LABEL = { en_cours: "🟡 Reçu", pret: "🟢 Prêt", servi: "✅ Servi" };
+const STATUT_SUIVANT = { en_cours: "pret", pret: "servi" };
 
 export default function App() {
   const [vue, setVue] = useState("accueil");
@@ -33,7 +37,10 @@ export default function App() {
   const [nouveauPlat, setNouveauPlat] = useState({ nom: "", prix: "", categorie: "Boissons", emoji: "🍽️", stock: "", seuil_alerte: "" });
   const [onglet, setOnglet] = useState("dashboard");
 
-  // ── DÉTECTION DE L'URL AU CHARGEMENT ──
+  const [commandesCuisine, setCommandesCuisine] = useState([]);
+  const [nouvellesCommandes, setNouvellesCommandes] = useState(0);
+  const audioRef = useRef(null);
+
   useEffect(() => {
     const path = window.location.pathname;
 
@@ -42,7 +49,6 @@ export default function App() {
       return;
     }
 
-    // Format attendu : /menu/CODE_UNIQUE/table-NUMERO
     const match = path.match(/^\/menu\/([^/]+)\/table-(.+)$/);
     if (match) {
       const codeUnique = match[1];
@@ -52,6 +58,52 @@ export default function App() {
       setVue("menu");
     }
   }, []);
+
+  useEffect(() => {
+    if (!gerant?.id) return;
+
+    chargerCommandesCuisine(gerant.id);
+
+    const channel = supabase
+      .channel("commandes-cuisine")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` },
+        (payload) => {
+          setCommandesCuisine(c => [payload.new, ...c]);
+          setNouvellesCommandes(n => n + 1);
+          if (audioRef.current) {
+            audioRef.current.play().catch(() => {});
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` },
+        (payload) => {
+          setCommandesCuisine(c => c.map(cmd => cmd.id === payload.new.id ? payload.new : cmd));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gerant?.id]);
+
+  const chargerCommandesCuisine = async (id) => {
+    const { data } = await supabase
+      .from("commandes")
+      .select("*")
+      .eq("restaurant_id", id)
+      .neq("statut", "servi")
+      .order("created_at", { ascending: false });
+    if (data) setCommandesCuisine(data);
+  };
+
+  const changerStatutCommande = async (commandeId, nouveauStatut) => {
+    await supabase.from("commandes").update({ statut: nouveauStatut }).eq("id", commandeId);
+  };
 
   const chargerMenuParCode = async (codeUnique) => {
     const res = await fetch(`${API}/api/restaurants/code/${codeUnique}`);
@@ -157,7 +209,6 @@ export default function App() {
 
   const lienQR = (table) => `${window.location.origin}/menu/${gerant?.code_unique}/table-${table}`;
 
-  // ── ADMIN ──
   const connecterAdmin = async () => {
     setLoading(true);
     const res = await fetch(`${API}/api/admin/connexion`, {
@@ -195,7 +246,6 @@ export default function App() {
     chargerRestosAdmin();
   };
 
-  // ── LOGIN ADMIN ──
   if (vue === "login-admin") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
       <div style={{ fontSize: 50, marginBottom: 16 }}>🛡️</div>
@@ -210,7 +260,6 @@ export default function App() {
     </div>
   );
 
-  // ── DASHBOARD ADMIN ──
   if (vue === "admin-dashboard") {
     const enAttente = restosAdmin.filter(r => r.statut === "en_attente");
     const valides = restosAdmin.filter(r => r.statut === "valide");
@@ -264,7 +313,6 @@ export default function App() {
     );
   }
 
-  // ── ACCUEIL ──
   if (vue === "accueil") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, textAlign: "center" }}>
       <div style={{ fontSize: 80 }}>🍽️</div>
@@ -277,7 +325,6 @@ export default function App() {
     </div>
   );
 
-  // ── LISTE RESTOS ──
   if (vue === "liste-restos") {
     const filtres = restos.filter(r => r.nom.toLowerCase().includes(recherche.toLowerCase()));
     return (
@@ -300,7 +347,6 @@ export default function App() {
     );
   }
 
-  // ── INSCRIPTION ──
   if (vue === "inscription") return (
     <div style={s.page}>
       <div style={s.header}>
@@ -321,7 +367,6 @@ export default function App() {
     </div>
   );
 
-  // ── LOGIN GERANT ──
   if (vue === "login-gerant") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
       <div style={{ fontSize: 50, marginBottom: 16 }}>🔐</div>
@@ -338,7 +383,6 @@ export default function App() {
     </div>
   );
 
-  // ── MENU CLIENT ──
   if (vue === "menu") return (
     <div style={s.page}>
       <div style={s.header}>
@@ -377,7 +421,6 @@ export default function App() {
     </div>
   );
 
-  // ── PAIEMENT ──
   if (vue === "paiement") return (
     <div style={s.page}>
       <div style={s.header}>
@@ -396,7 +439,6 @@ export default function App() {
     </div>
   );
 
-  // ── CONFIRMATION ──
   if (vue === "confirmation") return (
     <div style={{ ...s.page, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40, textAlign: "center" }}>
       <div style={{ fontSize: 80 }}>✅</div>
@@ -406,9 +448,9 @@ export default function App() {
     </div>
   );
 
-  // ── DASHBOARD GERANT ──
   if (vue === "gerant") return (
     <div style={s.page}>
+      <audio ref={audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
       <div style={s.header}>
         <div>
           <p style={{ margin: 0, fontWeight: 800 }}>🏪 {gerant?.nom}</p>
@@ -418,14 +460,20 @@ export default function App() {
       </div>
 
       <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022", overflowX: "auto" }}>
-        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["qrcodes", "📱"]].map(([id, icon]) => (
-          <button key={id} onClick={() => setOnglet(id)} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent", whiteSpace: "nowrap" }}>{icon} {id}</button>
+        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["cuisine", "🍳"], ["qrcodes", "📱"]].map(([id, icon]) => (
+          <button key={id} onClick={() => { setOnglet(id); if (id === "cuisine") setNouvellesCommandes(0); }} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent", whiteSpace: "nowrap", position: "relative" }}>
+            {icon} {id}
+            {id === "cuisine" && nouvellesCommandes > 0 && (
+              <span style={{ position: "absolute", top: 2, right: 8, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>
+                {nouvellesCommandes}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
       <div style={{ padding: 16 }}>
 
-        {/* DASHBOARD */}
         {onglet === "dashboard" && (
           <div>
             <div style={{ ...s.card, textAlign: "center" }}>
@@ -450,7 +498,6 @@ export default function App() {
           </div>
         )}
 
-        {/* MENU */}
         {onglet === "menu" && (
           <div>
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
@@ -477,7 +524,6 @@ export default function App() {
           </div>
         )}
 
-        {/* COMMANDES */}
         {onglet === "commandes" && (
           <div>
             {commandes.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune commande pour le moment.</p>}
@@ -487,7 +533,7 @@ export default function App() {
                   <span style={{ fontWeight: 700 }}>Table {c.numero_table}</span>
                   <span style={{ opacity: 0.5, fontSize: 12 }}>{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
-                <p style={{ opacity: 0.6, fontSize: 13, margin: "0 0 8px" }}>{c.mode_paiement}</p>
+                <p style={{ opacity: 0.6, fontSize: 13, margin: "0 0 8px" }}>{c.mode_paiement} · {STATUT_LABEL[c.statut] || c.statut}</p>
                 <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #FFD70022", paddingTop: 8 }}>
                   <span style={{ opacity: 0.6 }}>Total</span>
                   <span style={{ fontWeight: 800 }}>{c.total.toLocaleString()} FCFA</span>
@@ -497,7 +543,33 @@ export default function App() {
           </div>
         )}
 
-        {/* QR CODES */}
+        {onglet === "cuisine" && (
+          <div>
+            {commandesCuisine.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune commande en cours.</p>}
+            {commandesCuisine.map((c) => (
+              <div key={c.id} style={{ ...s.card, borderColor: c.statut === "en_cours" ? "#f97316" : "#FFD700" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontWeight: 800, fontSize: 16 }}>📍 Table {c.numero_table}</span>
+                  <span style={{ opacity: 0.5, fontSize: 12 }}>{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  {(c.items || []).map((item, idx) => (
+                    <p key={idx} style={{ margin: "2px 0", fontSize: 14 }}>• {item.qte}x {item.nom}</p>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 800, fontSize: 14 }}>{STATUT_LABEL[c.statut] || c.statut}</span>
+                  {STATUT_SUIVANT[c.statut] && (
+                    <button onClick={() => changerStatutCommande(c.id, STATUT_SUIVANT[c.statut])} style={{ ...s.btn("#FFD700"), width: "auto", padding: "8px 16px" }}>
+                      {c.statut === "en_cours" ? "👨‍🍳 Marquer prêt" : "✅ Marquer servi"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {onglet === "qrcodes" && (
           <div>
             <div style={{ ...s.card, borderColor: "#FFD700", marginBottom: 20 }}>
