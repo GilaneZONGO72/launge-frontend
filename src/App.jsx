@@ -35,7 +35,9 @@ export default function App() {
   const [inscription, setInscription] = useState({ nom: "", ville: "", telephone: "", email: "", mot_de_passe: "" });
   const [connexion, setConnexion] = useState({ email: "", mot_de_passe: "" });
   const [nouveauPlat, setNouveauPlat] = useState({ nom: "", prix: "", categorie: "Boissons", emoji: "🍽️", stock: "", seuil_alerte: "" });
+  const [platEnEdition, setPlatEnEdition] = useState(null);
   const [onglet, setOnglet] = useState("dashboard");
+  const [stats, setStats] = useState([]);
 
   const [commandesCuisine, setCommandesCuisine] = useState([]);
   const [nouvellesCommandes, setNouvellesCommandes] = useState(0);
@@ -43,61 +45,56 @@ export default function App() {
 
   useEffect(() => {
     const path = window.location.pathname;
-
-    if (path === "/admin-secret-launge") {
-      setVue("login-admin");
-      return;
-    }
-
+    if (path === "/admin-secret-launge") { setVue("login-admin"); return; }
     const match = path.match(/^\/menu\/([^/]+)\/table-(.+)$/);
     if (match) {
-      const codeUnique = match[1];
-      const table = match[2];
-      setNumeroTable(table);
-      chargerMenuParCode(codeUnique);
+      setNumeroTable(match[2]);
+      chargerMenuParCode(match[1]);
       setVue("menu");
     }
   }, []);
 
   useEffect(() => {
     if (!gerant?.id) return;
-
     chargerCommandesCuisine(gerant.id);
-
-    const channel = supabase
-      .channel("commandes-cuisine")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` },
-        (payload) => {
-          setCommandesCuisine(c => [payload.new, ...c]);
-          setNouvellesCommandes(n => n + 1);
-          if (audioRef.current) {
-            audioRef.current.play().catch(() => {});
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` },
-        (payload) => {
-          setCommandesCuisine(c => c.map(cmd => cmd.id === payload.new.id ? payload.new : cmd));
-        }
-      )
+    chargerStats(gerant.id);
+    const channel = supabase.channel("commandes-cuisine")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` }, (payload) => {
+        setCommandesCuisine(c => [payload.new, ...c]);
+        setNouvellesCommandes(n => n + 1);
+        if (audioRef.current) audioRef.current.play().catch(() => {});
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` }, (payload) => {
+        setCommandesCuisine(c => c.map(cmd => cmd.id === payload.new.id ? payload.new : cmd));
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [gerant?.id]);
 
+  const chargerStats = async (id) => {
+    const res = await fetch(`${API}/api/stats/${id}`);
+    const data = await res.json();
+    if (!data.error) setStats(data);
+  };
+
+  // ── CALCULS INVENTAIRE ──
+  const today = new Date().toDateString();
+  const commandesJour = commandes.filter(c => new Date(c.created_at).toDateString() === today);
+  const caJour = commandesJour.reduce((a, c) => a + c.total, 0);
+
+  const comptageItems = {};
+  stats.forEach(cmd => {
+    (cmd.items || []).forEach(item => {
+      comptageItems[item.nom] = (comptageItems[item.nom] || 0) + item.qte;
+    });
+  });
+  const itemsTries = Object.entries(comptageItems).sort((a, b) => b[1] - a[1]);
+  const platPlusVendu = itemsTries[0];
+  const platMoinsVendu = itemsTries[itemsTries.length - 1];
+  const caMois = stats.reduce((a, c) => a + c.total, 0);
+
   const chargerCommandesCuisine = async (id) => {
-    const { data } = await supabase
-      .from("commandes")
-      .select("*")
-      .eq("restaurant_id", id)
-      .neq("statut", "servi")
-      .order("created_at", { ascending: false });
+    const { data } = await supabase.from("commandes").select("*").eq("restaurant_id", id).neq("statut", "servi").order("created_at", { ascending: false });
     if (data) setCommandesCuisine(data);
   };
 
@@ -108,10 +105,7 @@ export default function App() {
   const chargerMenuParCode = async (codeUnique) => {
     const res = await fetch(`${API}/api/restaurants/code/${codeUnique}`);
     const data = await res.json();
-    if (data.error) {
-      alert("Restaurant introuvable.");
-      return;
-    }
+    if (data.error) { alert("Restaurant introuvable."); return; }
     setRestoId(data.id);
     chargerMenu(data.id);
   };
@@ -141,11 +135,7 @@ export default function App() {
 
   const inscrireGerant = async () => {
     setLoading(true);
-    const res = await fetch(`${API}/api/restaurants/inscription`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(inscription)
-    });
+    const res = await fetch(`${API}/api/restaurants/inscription`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(inscription) });
     const data = await res.json();
     setLoading(false);
     if (data.error) return alert("Erreur : " + data.error);
@@ -155,11 +145,7 @@ export default function App() {
 
   const connecterGerant = async () => {
     setLoading(true);
-    const res = await fetch(`${API}/api/restaurants/connexion`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(connexion)
-    });
+    const res = await fetch(`${API}/api/restaurants/connexion`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(connexion) });
     const data = await res.json();
     setLoading(false);
     if (data.error) return alert("Erreur : " + data.error);
@@ -170,11 +156,7 @@ export default function App() {
   };
 
   const ajouterPlat = async () => {
-    const res = await fetch(`${API}/api/menu`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...nouveauPlat, restaurant_id: gerant.id, prix: +nouveauPlat.prix, stock: +nouveauPlat.stock, seuil_alerte: +nouveauPlat.seuil_alerte })
-    });
+    const res = await fetch(`${API}/api/menu`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...nouveauPlat, restaurant_id: gerant.id, prix: +nouveauPlat.prix, stock: +nouveauPlat.stock, seuil_alerte: +nouveauPlat.seuil_alerte }) });
     const data = await res.json();
     if (data.error) return alert("Erreur : " + data.error);
     setMenu(m => [...m, data]);
@@ -182,16 +164,29 @@ export default function App() {
     alert("✅ Plat ajouté !");
   };
 
+  const modifierPlat = async () => {
+    const res = await fetch(`${API}/api/menu/${platEnEdition.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(platEnEdition) });
+    const data = await res.json();
+    if (data.error) return alert("Erreur : " + data.error);
+    setMenu(m => m.map(i => i.id === data.id ? data : i));
+    setPlatEnEdition(null);
+    alert("✅ Plat modifié !");
+  };
+
+  const supprimerPlat = async (id) => {
+    if (!confirm("Supprimer ce plat définitivement ?")) return;
+    const res = await fetch(`${API}/api/menu/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.error) return alert("Erreur : " + data.error);
+    setMenu(m => m.filter(i => i.id !== id));
+  };
+
   const passerCommande = async (modePaiement) => {
     const items = Object.entries(panier).map(([id, qte]) => {
       const item = menu.find(i => i.id === id);
       return { id, nom: item.nom, qte, prix: item.prix };
     });
-    const res = await fetch(`${API}/api/commandes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement })
-    });
+    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement }) });
     const data = await res.json();
     if (data.error) return alert("Erreur : " + data.error);
     setPanier({});
@@ -211,11 +206,7 @@ export default function App() {
 
   const connecterAdmin = async () => {
     setLoading(true);
-    const res = await fetch(`${API}/api/admin/connexion`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(connexionAdmin)
-    });
+    const res = await fetch(`${API}/api/admin/connexion`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(connexionAdmin) });
     const data = await res.json();
     setLoading(false);
     if (data.error) return alert("Erreur : " + data.error);
@@ -230,16 +221,8 @@ export default function App() {
     setRestosAdmin(data);
   };
 
-  const validerResto = async (id) => {
-    await fetch(`${API}/api/admin/restaurants/${id}/valider`, { method: "PUT" });
-    chargerRestosAdmin();
-  };
-
-  const refuserResto = async (id) => {
-    await fetch(`${API}/api/admin/restaurants/${id}/refuser`, { method: "PUT" });
-    chargerRestosAdmin();
-  };
-
+  const validerResto = async (id) => { await fetch(`${API}/api/admin/restaurants/${id}/valider`, { method: "PUT" }); chargerRestosAdmin(); };
+  const refuserResto = async (id) => { await fetch(`${API}/api/admin/restaurants/${id}/refuser`, { method: "PUT" }); chargerRestosAdmin(); };
   const supprimerResto = async (id) => {
     if (!confirm("Supprimer ce restaurant définitivement ?")) return;
     await fetch(`${API}/api/admin/restaurants/${id}`, { method: "DELETE" });
@@ -253,9 +236,7 @@ export default function App() {
       <div style={{ width: "100%", maxWidth: 320 }}>
         <input placeholder="Email" type="email" value={connexionAdmin.email} onChange={e => setConnexionAdmin({ ...connexionAdmin, email: e.target.value })} style={s.input} />
         <input placeholder="Mot de passe" type="password" value={connexionAdmin.mot_de_passe} onChange={e => setConnexionAdmin({ ...connexionAdmin, mot_de_passe: e.target.value })} style={s.input} />
-        <button onClick={connecterAdmin} style={s.btn("#FFD700")} disabled={loading}>
-          {loading ? "⏳ Connexion..." : "Se connecter"}
-        </button>
+        <button onClick={connecterAdmin} style={s.btn("#FFD700")} disabled={loading}>{loading ? "⏳ Connexion..." : "Se connecter"}</button>
       </div>
     </div>
   );
@@ -283,7 +264,6 @@ export default function App() {
               </div>
             </div>
           ))}
-
           <h3 style={{ marginTop: 24, marginBottom: 8 }}>✅ Validés ({valides.length})</h3>
           {valides.map(r => (
             <div key={r.id} style={s.card}>
@@ -296,18 +276,15 @@ export default function App() {
               </div>
             </div>
           ))}
-
-          {refuses.length > 0 && (
-            <>
-              <h3 style={{ marginTop: 24, marginBottom: 8 }}>❌ Refusés ({refuses.length})</h3>
-              {refuses.map(r => (
-                <div key={r.id} style={{ ...s.card, opacity: 0.5 }}>
-                  <p style={{ margin: "0 0 4px", fontWeight: 700 }}>{r.nom}</p>
-                  <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{r.ville}</p>
-                </div>
-              ))}
-            </>
-          )}
+          {refuses.length > 0 && (<>
+            <h3 style={{ marginTop: 24, marginBottom: 8 }}>❌ Refusés ({refuses.length})</h3>
+            {refuses.map(r => (
+              <div key={r.id} style={{ ...s.card, opacity: 0.5 }}>
+                <p style={{ margin: "0 0 4px", fontWeight: 700 }}>{r.nom}</p>
+                <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{r.ville}</p>
+              </div>
+            ))}
+          </>)}
         </div>
       </div>
     );
@@ -360,9 +337,7 @@ export default function App() {
             value={inscription[field]} onChange={e => setInscription({ ...inscription, [field]: e.target.value })}
             style={s.input} />
         ))}
-        <button onClick={inscrireGerant} style={s.btn("#FFD700")} disabled={loading}>
-          {loading ? "⏳ Création..." : "✅ Créer mon compte"}
-        </button>
+        <button onClick={inscrireGerant} style={s.btn("#FFD700")} disabled={loading}>{loading ? "⏳ Création..." : "✅ Créer mon compte"}</button>
       </div>
     </div>
   );
@@ -374,9 +349,7 @@ export default function App() {
       <div style={{ width: "100%", maxWidth: 320 }}>
         <input placeholder="Email" type="email" value={connexion.email} onChange={e => setConnexion({ ...connexion, email: e.target.value })} style={s.input} />
         <input placeholder="Mot de passe" type="password" value={connexion.mot_de_passe} onChange={e => setConnexion({ ...connexion, mot_de_passe: e.target.value })} style={s.input} />
-        <button onClick={connecterGerant} style={{ ...s.btn("#FFD700"), marginBottom: 12 }} disabled={loading}>
-          {loading ? "⏳ Connexion..." : "Se connecter"}
-        </button>
+        <button onClick={connecterGerant} style={{ ...s.btn("#FFD700"), marginBottom: 12 }} disabled={loading}>{loading ? "⏳ Connexion..." : "Se connecter"}</button>
         <button onClick={() => setVue("inscription")} style={{ ...s.btn("#111"), marginBottom: 12 }}>📝 Inscrire mon restaurant</button>
         <button onClick={() => setVue("accueil")} style={s.btn("#111")}>← Retour</button>
       </div>
@@ -413,9 +386,7 @@ export default function App() {
       </div>
       {totalPanier > 0 && (
         <div style={{ position: "fixed", bottom: 20, left: 20, right: 20 }}>
-          <button onClick={() => setVue("paiement")} style={s.btn("#FFD700")}>
-            🛒 Commander — {totalPanier.toLocaleString()} FCFA
-          </button>
+          <button onClick={() => setVue("paiement")} style={s.btn("#FFD700")}>🛒 Commander — {totalPanier.toLocaleString()} FCFA</button>
         </div>
       )}
     </div>
@@ -464,9 +435,7 @@ export default function App() {
           <button key={id} onClick={() => { setOnglet(id); if (id === "cuisine") setNouvellesCommandes(0); }} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent", whiteSpace: "nowrap", position: "relative" }}>
             {icon} {id}
             {id === "cuisine" && nouvellesCommandes > 0 && (
-              <span style={{ position: "absolute", top: 2, right: 8, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>
-                {nouvellesCommandes}
-              </span>
+              <span style={{ position: "absolute", top: 2, right: 8, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{nouvellesCommandes}</span>
             )}
           </button>
         ))}
@@ -476,11 +445,14 @@ export default function App() {
 
         {onglet === "dashboard" && (
           <div>
+            {/* CAISSE DU JOUR */}
             <div style={{ ...s.card, textAlign: "center" }}>
               <p style={{ opacity: 0.6 }}>💰 Caisse du jour</p>
               <p style={{ fontSize: 32, fontWeight: 900 }}>{commandes.reduce((a, c) => a + c.total, 0).toLocaleString()} FCFA</p>
               <p style={{ opacity: 0.5 }}>{commandes.length} commande(s)</p>
             </div>
+
+            {/* STOCK FAIBLE */}
             <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 8 }}>⚠️ Stock faible</p>
               {menu.filter(i => i.stock <= i.seuil_alerte).map(i => (
@@ -491,15 +463,69 @@ export default function App() {
               ))}
               {menu.filter(i => i.stock <= i.seuil_alerte).length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>✅ Tout est en stock !</p>}
             </div>
-            <div style={{ ...s.card }}>
+
+            {/* CODE UNIQUE */}
+            <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 4 }}>🔑 Votre code unique</p>
               <p style={{ fontSize: 20, fontWeight: 900, color: "#FFD700", letterSpacing: 4 }}>{gerant?.code_unique}</p>
+            </div>
+
+            {/* INVENTAIRE JOURNALIER */}
+            <div style={{ ...s.card, borderColor: "#FFD700" }}>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>📅 Inventaire du jour</p>
+              <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 8 }}>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ opacity: 0.7 }}>Chiffre d'affaires</span>
+                <span style={{ fontWeight: 800 }}>{caJour.toLocaleString()} FCFA</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ opacity: 0.7 }}>Commandes</span>
+                <span style={{ fontWeight: 800 }}>{commandesJour.length}</span>
+              </div>
+              {platPlusVendu && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ opacity: 0.7 }}>⭐ Plus vendu</span>
+                  <span style={{ fontWeight: 800 }}>{platPlusVendu[0]} ({platPlusVendu[1]}x)</span>
+                </div>
+              )}
+              {platMoinsVendu && platMoinsVendu[0] !== platPlusVendu?.[0] && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ opacity: 0.7 }}>📉 Moins vendu</span>
+                  <span style={{ fontWeight: 800 }}>{platMoinsVendu[0]} ({platMoinsVendu[1]}x)</span>
+                </div>
+              )}
+            </div>
+
+            {/* INVENTAIRE MENSUEL */}
+            <div style={{ ...s.card, borderColor: "#FFD70055" }}>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>📊 Inventaire des 30 derniers jours</p>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ opacity: 0.7 }}>Chiffre d'affaires</span>
+                <span style={{ fontWeight: 800 }}>{caMois.toLocaleString()} FCFA</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ opacity: 0.7 }}>Total commandes</span>
+                <span style={{ fontWeight: 800 }}>{stats.length}</span>
+              </div>
+              {itemsTries.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <p style={{ opacity: 0.7, marginBottom: 6, fontSize: 13 }}>🏆 Top articles :</p>
+                  {itemsTries.slice(0, 3).map(([nom, qte], idx) => (
+                    <div key={nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                      <span>{idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"} {nom}</span>
+                      <span style={{ fontWeight: 700 }}>{qte}x</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {itemsTries.length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>Aucune donnée pour le moment.</p>}
             </div>
           </div>
         )}
 
         {onglet === "menu" && (
           <div>
+            {/* FORMULAIRE AJOUT */}
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
               <p style={{ fontWeight: 700, marginBottom: 12 }}>➕ Ajouter un article</p>
               <input placeholder="Nom" value={nouveauPlat.nom} onChange={e => setNouveauPlat({ ...nouveauPlat, nom: e.target.value })} style={s.input} />
@@ -512,12 +538,37 @@ export default function App() {
               <input placeholder="Seuil alerte" type="number" value={nouveauPlat.seuil_alerte} onChange={e => setNouveauPlat({ ...nouveauPlat, seuil_alerte: e.target.value })} style={s.input} />
               <button onClick={ajouterPlat} style={s.btn("#FFD700")}>➕ Ajouter</button>
             </div>
+
+            {/* FORMULAIRE MODIFICATION */}
+            {platEnEdition && (
+              <div style={{ ...s.card, borderColor: "#f97316" }}>
+                <p style={{ fontWeight: 700, marginBottom: 12 }}>✏️ Modifier : {platEnEdition.nom}</p>
+                <input placeholder="Nom" value={platEnEdition.nom} onChange={e => setPlatEnEdition({ ...platEnEdition, nom: e.target.value })} style={s.input} />
+                <input placeholder="Prix FCFA" type="number" value={platEnEdition.prix} onChange={e => setPlatEnEdition({ ...platEnEdition, prix: e.target.value })} style={s.input} />
+                <select value={platEnEdition.categorie} onChange={e => setPlatEnEdition({ ...platEnEdition, categorie: e.target.value })} style={s.input}>
+                  {["Boissons", "Plats", "Grillades", "Snacks"].map(c => <option key={c}>{c}</option>)}
+                </select>
+                <input placeholder="Emoji" value={platEnEdition.emoji} onChange={e => setPlatEnEdition({ ...platEnEdition, emoji: e.target.value })} style={s.input} />
+                <input placeholder="Stock" type="number" value={platEnEdition.stock} onChange={e => setPlatEnEdition({ ...platEnEdition, stock: e.target.value })} style={s.input} />
+                <input placeholder="Seuil alerte" type="number" value={platEnEdition.seuil_alerte} onChange={e => setPlatEnEdition({ ...platEnEdition, seuil_alerte: e.target.value })} style={s.input} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={modifierPlat} style={{ ...s.btn("#FFD700"), flex: 1 }}>✅ Enregistrer</button>
+                  <button onClick={() => setPlatEnEdition(null)} style={{ ...s.btn("#333"), flex: 1 }}>❌ Annuler</button>
+                </div>
+              </div>
+            )}
+
+            {/* LISTE DES PLATS */}
             {menu.map(item => (
               <div key={item.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 28 }}>{item.emoji}</span>
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: "0 0 2px", fontWeight: 700 }}>{item.nom}</p>
                   <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{item.prix.toLocaleString()} FCFA · Stock: {item.stock}</p>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setPlatEnEdition({ ...item })} style={{ background: "#333", border: "1px solid #FFD700", borderRadius: 8, color: "#FFD700", cursor: "pointer", padding: "6px 10px", fontSize: 12 }}>✏️</button>
+                  <button onClick={() => supprimerPlat(item.id)} style={{ background: "transparent", border: "1px solid #ef4444", borderRadius: 8, color: "#ef4444", cursor: "pointer", padding: "6px 10px", fontSize: 12 }}>🗑️</button>
                 </div>
               </div>
             ))}
@@ -580,17 +631,11 @@ export default function App() {
                 <button onClick={() => setNbTables(n => n + 1)} style={{ background: "#FFD700", border: "none", borderRadius: "50%", width: 36, height: 36, color: "#000", cursor: "pointer", fontWeight: 800, fontSize: 18 }}>+</button>
               </div>
             </div>
-
             {Array.from({ length: nbTables }, (_, i) => i + 1).map(table => (
               <div key={table} style={{ ...s.card, textAlign: "center", marginBottom: 16 }}>
                 <p style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>📍 Table {table}</p>
                 <div style={{ background: "white", padding: 16, borderRadius: 12, display: "inline-block", marginBottom: 12 }}>
-                  <QRCode
-                    value={lienQR(table)}
-                    size={160}
-                    bgColor="white"
-                    fgColor="#000"
-                  />
+                  <QRCode value={lienQR(table)} size={160} bgColor="white" fgColor="#000" />
                 </div>
                 <p style={{ fontSize: 11, opacity: 0.5, marginBottom: 8, wordBreak: "break-all" }}>{lienQR(table)}</p>
                 <button onClick={() => window.print()} style={{ ...s.btn("#FFD700"), maxWidth: 200, margin: "0 auto" }}>🖨️ Imprimer</button>
