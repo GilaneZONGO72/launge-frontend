@@ -22,11 +22,13 @@ export default function App() {
   const [panier, setPanier] = useState({});
   const [commandes, setCommandes] = useState([]);
   const [restoId, setRestoId] = useState(null);
+  const [restoInfo, setRestoInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [nbTables, setNbTables] = useState(5);
   const [restos, setRestos] = useState([]);
   const [recherche, setRecherche] = useState("");
   const [numeroTable, setNumeroTable] = useState("T1");
+  const [ongletMenu, setOngletMenu] = useState("plats");
 
   const [admin, setAdmin] = useState(null);
   const [restosAdmin, setRestosAdmin] = useState([]);
@@ -34,10 +36,12 @@ export default function App() {
 
   const [inscription, setInscription] = useState({ nom: "", ville: "", telephone: "", email: "", mot_de_passe: "" });
   const [connexion, setConnexion] = useState({ email: "", mot_de_passe: "" });
-  const [nouveauPlat, setNouveauPlat] = useState({ nom: "", prix: "", categorie: "Boissons", emoji: "🍽️", stock: "", seuil_alerte: "" });
+  const [nouveauPlat, setNouveauPlat] = useState({ nom: "", prix: "", categorie: "Plats", emoji: "🍽️", stock: "", seuil_alerte: "" });
   const [platEnEdition, setPlatEnEdition] = useState(null);
   const [onglet, setOnglet] = useState("dashboard");
   const [stats, setStats] = useState([]);
+
+  const [recrutement, setRecrutement] = useState({ actif: false, poste: "", conditions: "", contact: "" });
 
   const [commandesCuisine, setCommandesCuisine] = useState([]);
   const [nouvellesCommandes, setNouvellesCommandes] = useState(0);
@@ -58,6 +62,7 @@ export default function App() {
     if (!gerant?.id) return;
     chargerCommandesCuisine(gerant.id);
     chargerStats(gerant.id);
+    if (gerant.recrutement) setRecrutement(gerant.recrutement);
     const channel = supabase.channel("commandes-cuisine")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` }, (payload) => {
         setCommandesCuisine(c => [payload.new, ...c]);
@@ -77,7 +82,6 @@ export default function App() {
     if (!data.error) setStats(data);
   };
 
-  // ── CALCULS INVENTAIRE ──
   const today = new Date().toDateString();
   const commandesJour = commandes.filter(c => new Date(c.created_at).toDateString() === today);
   const caJour = commandesJour.reduce((a, c) => a + c.total, 0);
@@ -107,6 +111,7 @@ export default function App() {
     const data = await res.json();
     if (data.error) { alert("Restaurant introuvable."); return; }
     setRestoId(data.id);
+    setRestoInfo(data);
     chargerMenu(data.id);
   };
 
@@ -160,7 +165,7 @@ export default function App() {
     const data = await res.json();
     if (data.error) return alert("Erreur : " + data.error);
     setMenu(m => [...m, data]);
-    setNouveauPlat({ nom: "", prix: "", categorie: "Boissons", emoji: "🍽️", stock: "", seuil_alerte: "" });
+    setNouveauPlat({ nom: "", prix: "", categorie: "Plats", emoji: "🍽️", stock: "", seuil_alerte: "" });
     alert("✅ Plat ajouté !");
   };
 
@@ -179,6 +184,14 @@ export default function App() {
     const data = await res.json();
     if (data.error) return alert("Erreur : " + data.error);
     setMenu(m => m.filter(i => i.id !== id));
+  };
+
+  const sauvegarderRecrutement = async () => {
+    const res = await fetch(`${API}/api/restaurants/${gerant.id}/recrutement`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recrutement }) });
+    const data = await res.json();
+    if (data.error) return alert("Erreur : " + data.error);
+    setGerant({ ...gerant, recrutement });
+    alert("✅ Informations de recrutement sauvegardées !");
   };
 
   const passerCommande = async (modePaiement) => {
@@ -356,41 +369,89 @@ export default function App() {
     </div>
   );
 
-  if (vue === "menu") return (
-    <div style={s.page}>
-      <div style={s.header}>
-        <span style={{ fontWeight: 800 }}>🍽️ LAUNGE</span>
-        <button onClick={() => setVue("liste-restos")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
-      </div>
-      <div style={{ padding: 16, paddingBottom: 100 }}>
-        {menu.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun plat disponible.</p>}
-        {menu.map(item => {
-          const qte = panier[item.id] || 0;
-          return (
-            <div key={item.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 14, opacity: item.stock === 0 ? 0.4 : 1 }}>
-              <span style={{ fontSize: 36 }}>{item.emoji}</span>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: "0 0 2px", fontWeight: 700 }}>{item.nom}</p>
-                <p style={{ margin: 0, fontWeight: 800 }}>{item.prix.toLocaleString()} FCFA</p>
-              </div>
-              {item.stock === 0 ? <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 12 }}>ÉPUISÉ</span>
-                : qte === 0 ? <button onClick={() => modifier(item.id, 1)} style={{ background: "#FFD700", color: "#000", border: "none", borderRadius: 8, padding: "8px 16px", fontWeight: 800, cursor: "pointer" }}>+</button>
-                : <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <button onClick={() => modifier(item.id, -1)} style={{ background: "#333", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#FFD700", cursor: "pointer", fontWeight: 800 }}>−</button>
-                    <span style={{ fontWeight: 800 }}>{qte}</span>
-                    <button onClick={() => modifier(item.id, 1)} style={{ background: "#FFD700", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#000", cursor: "pointer", fontWeight: 800 }}>+</button>
-                  </div>}
-            </div>
-          );
-        })}
-      </div>
-      {totalPanier > 0 && (
-        <div style={{ position: "fixed", bottom: 20, left: 20, right: 20 }}>
-          <button onClick={() => setVue("paiement")} style={s.btn("#FFD700")}>🛒 Commander — {totalPanier.toLocaleString()} FCFA</button>
+  if (vue === "menu") {
+    const plats = menu.filter(i => i.categorie !== "Boissons");
+    const boissons = menu.filter(i => i.categorie === "Boissons");
+    const infoRecrutement = restoInfo?.recrutement;
+
+    const renderItem = (item) => {
+      const qte = panier[item.id] || 0;
+      return (
+        <div key={item.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 14, opacity: item.stock === 0 ? 0.4 : 1 }}>
+          <span style={{ fontSize: 36 }}>{item.emoji}</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: "0 0 2px", fontWeight: 700 }}>{item.nom}</p>
+            <p style={{ margin: 0, fontWeight: 800 }}>{item.prix.toLocaleString()} FCFA</p>
+          </div>
+          {item.stock === 0 ? <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 12 }}>ÉPUISÉ</span>
+            : qte === 0 ? <button onClick={() => modifier(item.id, 1)} style={{ background: "#FFD700", color: "#000", border: "none", borderRadius: 8, padding: "8px 16px", fontWeight: 800, cursor: "pointer" }}>+</button>
+            : <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <button onClick={() => modifier(item.id, -1)} style={{ background: "#333", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#FFD700", cursor: "pointer", fontWeight: 800 }}>−</button>
+                <span style={{ fontWeight: 800 }}>{qte}</span>
+                <button onClick={() => modifier(item.id, 1)} style={{ background: "#FFD700", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#000", cursor: "pointer", fontWeight: 800 }}>+</button>
+              </div>}
         </div>
-      )}
-    </div>
-  );
+      );
+    };
+
+    return (
+      <div style={s.page}>
+        <div style={s.header}>
+          <span style={{ fontWeight: 800 }}>🍽️ LAUNGE</span>
+          <button onClick={() => setVue("liste-restos")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
+        </div>
+
+        {/* ONGLETS CLIENT */}
+        <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022" }}>
+          {[["plats", "🍽️ Plats"], ["boissons", "🥤 Boissons"], ["jobs", "💼 Jobs"]].map(([id, label]) => (
+            <button key={id} onClick={() => setOngletMenu(id)} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: ongletMenu === id ? "#FFD700" : "rgba(255,215,0,0.4)", cursor: "pointer", fontSize: 12, fontWeight: ongletMenu === id ? 800 : 500, borderBottom: ongletMenu === id ? "2px solid #FFD700" : "2px solid transparent" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ padding: 16, paddingBottom: 100 }}>
+          {ongletMenu === "plats" && (
+            <>
+              {plats.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun plat disponible.</p>}
+              {plats.map(renderItem)}
+            </>
+          )}
+
+          {ongletMenu === "boissons" && (
+            <>
+              {boissons.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune boisson disponible.</p>}
+              {boissons.map(renderItem)}
+            </>
+          )}
+
+          {ongletMenu === "jobs" && (
+            <>
+              {infoRecrutement?.actif ? (
+                <div style={s.card}>
+                  <p style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>💼 Nous recrutons !</p>
+                  <p style={{ fontWeight: 700, marginBottom: 4 }}>Poste recherché</p>
+                  <p style={{ opacity: 0.8, marginBottom: 12 }}>{infoRecrutement.poste}</p>
+                  <p style={{ fontWeight: 700, marginBottom: 4 }}>Conditions</p>
+                  <p style={{ opacity: 0.8, marginBottom: 12 }}>{infoRecrutement.conditions}</p>
+                  <p style={{ fontWeight: 700, marginBottom: 4 }}>Contact</p>
+                  <p style={{ opacity: 0.8 }}>{infoRecrutement.contact}</p>
+                </div>
+              ) : (
+                <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun poste disponible pour le moment.</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {totalPanier > 0 && (
+          <div style={{ position: "fixed", bottom: 20, left: 20, right: 20 }}>
+            <button onClick={() => setVue("paiement")} style={s.btn("#FFD700")}>🛒 Commander — {totalPanier.toLocaleString()} FCFA</button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (vue === "paiement") return (
     <div style={s.page}>
@@ -431,7 +492,7 @@ export default function App() {
       </div>
 
       <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022", overflowX: "auto" }}>
-        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["cuisine", "🍳"], ["qrcodes", "📱"]].map(([id, icon]) => (
+        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["cuisine", "🍳"], ["recrutement", "💼"], ["qrcodes", "📱"]].map(([id, icon]) => (
           <button key={id} onClick={() => { setOnglet(id); if (id === "cuisine") setNouvellesCommandes(0); }} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent", whiteSpace: "nowrap", position: "relative" }}>
             {icon} {id}
             {id === "cuisine" && nouvellesCommandes > 0 && (
@@ -445,14 +506,11 @@ export default function App() {
 
         {onglet === "dashboard" && (
           <div>
-            {/* CAISSE DU JOUR */}
             <div style={{ ...s.card, textAlign: "center" }}>
               <p style={{ opacity: 0.6 }}>💰 Caisse du jour</p>
               <p style={{ fontSize: 32, fontWeight: 900 }}>{commandes.reduce((a, c) => a + c.total, 0).toLocaleString()} FCFA</p>
               <p style={{ opacity: 0.5 }}>{commandes.length} commande(s)</p>
             </div>
-
-            {/* STOCK FAIBLE */}
             <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 8 }}>⚠️ Stock faible</p>
               {menu.filter(i => i.stock <= i.seuil_alerte).map(i => (
@@ -463,14 +521,10 @@ export default function App() {
               ))}
               {menu.filter(i => i.stock <= i.seuil_alerte).length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>✅ Tout est en stock !</p>}
             </div>
-
-            {/* CODE UNIQUE */}
             <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 4 }}>🔑 Votre code unique</p>
               <p style={{ fontSize: 20, fontWeight: 900, color: "#FFD700", letterSpacing: 4 }}>{gerant?.code_unique}</p>
             </div>
-
-            {/* INVENTAIRE JOURNALIER */}
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
               <p style={{ fontWeight: 700, marginBottom: 12 }}>📅 Inventaire du jour</p>
               <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 8 }}>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
@@ -495,8 +549,6 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            {/* INVENTAIRE MENSUEL */}
             <div style={{ ...s.card, borderColor: "#FFD70055" }}>
               <p style={{ fontWeight: 700, marginBottom: 12 }}>📊 Inventaire des 30 derniers jours</p>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -525,13 +577,12 @@ export default function App() {
 
         {onglet === "menu" && (
           <div>
-            {/* FORMULAIRE AJOUT */}
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
               <p style={{ fontWeight: 700, marginBottom: 12 }}>➕ Ajouter un article</p>
               <input placeholder="Nom" value={nouveauPlat.nom} onChange={e => setNouveauPlat({ ...nouveauPlat, nom: e.target.value })} style={s.input} />
               <input placeholder="Prix FCFA" type="number" value={nouveauPlat.prix} onChange={e => setNouveauPlat({ ...nouveauPlat, prix: e.target.value })} style={s.input} />
               <select value={nouveauPlat.categorie} onChange={e => setNouveauPlat({ ...nouveauPlat, categorie: e.target.value })} style={s.input}>
-                {["Boissons", "Plats", "Grillades", "Snacks"].map(c => <option key={c}>{c}</option>)}
+                {["Plats", "Boissons"].map(c => <option key={c}>{c}</option>)}
               </select>
               <input placeholder="Emoji 🍽️" value={nouveauPlat.emoji} onChange={e => setNouveauPlat({ ...nouveauPlat, emoji: e.target.value })} style={s.input} />
               <input placeholder="Stock initial" type="number" value={nouveauPlat.stock} onChange={e => setNouveauPlat({ ...nouveauPlat, stock: e.target.value })} style={s.input} />
@@ -539,14 +590,13 @@ export default function App() {
               <button onClick={ajouterPlat} style={s.btn("#FFD700")}>➕ Ajouter</button>
             </div>
 
-            {/* FORMULAIRE MODIFICATION */}
             {platEnEdition && (
               <div style={{ ...s.card, borderColor: "#f97316" }}>
                 <p style={{ fontWeight: 700, marginBottom: 12 }}>✏️ Modifier : {platEnEdition.nom}</p>
                 <input placeholder="Nom" value={platEnEdition.nom} onChange={e => setPlatEnEdition({ ...platEnEdition, nom: e.target.value })} style={s.input} />
                 <input placeholder="Prix FCFA" type="number" value={platEnEdition.prix} onChange={e => setPlatEnEdition({ ...platEnEdition, prix: e.target.value })} style={s.input} />
                 <select value={platEnEdition.categorie} onChange={e => setPlatEnEdition({ ...platEnEdition, categorie: e.target.value })} style={s.input}>
-                  {["Boissons", "Plats", "Grillades", "Snacks"].map(c => <option key={c}>{c}</option>)}
+                  {["Plats", "Boissons"].map(c => <option key={c}>{c}</option>)}
                 </select>
                 <input placeholder="Emoji" value={platEnEdition.emoji} onChange={e => setPlatEnEdition({ ...platEnEdition, emoji: e.target.value })} style={s.input} />
                 <input placeholder="Stock" type="number" value={platEnEdition.stock} onChange={e => setPlatEnEdition({ ...platEnEdition, stock: e.target.value })} style={s.input} />
@@ -558,13 +608,12 @@ export default function App() {
               </div>
             )}
 
-            {/* LISTE DES PLATS */}
             {menu.map(item => (
               <div key={item.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 28 }}>{item.emoji}</span>
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: "0 0 2px", fontWeight: 700 }}>{item.nom}</p>
-                  <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{item.prix.toLocaleString()} FCFA · Stock: {item.stock}</p>
+                  <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{item.prix.toLocaleString()} FCFA · Stock: {item.stock} · {item.categorie}</p>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setPlatEnEdition({ ...item })} style={{ background: "#333", border: "1px solid #FFD700", borderRadius: 8, color: "#FFD700", cursor: "pointer", padding: "6px 10px", fontSize: 12 }}>✏️</button>
@@ -618,6 +667,28 @@ export default function App() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {onglet === "recrutement" && (
+          <div>
+            <div style={s.card}>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>💼 Gestion du recrutement</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <span style={{ opacity: 0.7 }}>Nous recrutons actuellement :</span>
+                <button onClick={() => setRecrutement({ ...recrutement, actif: !recrutement.actif })} style={{ background: recrutement.actif ? "#22c55e" : "#333", border: "none", borderRadius: 20, padding: "6px 16px", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+                  {recrutement.actif ? "OUI ✅" : "NON ❌"}
+                </button>
+              </div>
+              {recrutement.actif && (
+                <>
+                  <input placeholder="Poste recherché (ex: Serveur, Cuisinier...)" value={recrutement.poste} onChange={e => setRecrutement({ ...recrutement, poste: e.target.value })} style={s.input} />
+                  <textarea placeholder="Conditions (expérience, horaires, salaire...)" value={recrutement.conditions} onChange={e => setRecrutement({ ...recrutement, conditions: e.target.value })} style={{ ...s.input, height: 80, resize: "none" }} />
+                  <input placeholder="Contact (téléphone, email...)" value={recrutement.contact} onChange={e => setRecrutement({ ...recrutement, contact: e.target.value })} style={s.input} />
+                </>
+              )}
+              <button onClick={sauvegarderRecrutement} style={s.btn("#FFD700")}>💾 Sauvegarder</button>
+            </div>
           </div>
         )}
 
