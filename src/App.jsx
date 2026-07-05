@@ -40,7 +40,6 @@ export default function App() {
   const [platEnEdition, setPlatEnEdition] = useState(null);
   const [onglet, setOnglet] = useState("dashboard");
   const [stats, setStats] = useState([]);
-
   const [recrutement, setRecrutement] = useState({ actif: false, poste: "", conditions: "", contact: "" });
 
   const [commandesCuisine, setCommandesCuisine] = useState([]);
@@ -82,20 +81,34 @@ export default function App() {
     if (!data.error) setStats(data);
   };
 
-  const today = new Date().toDateString();
-  const commandesJour = commandes.filter(c => new Date(c.created_at).toDateString() === today);
-  const caJour = commandesJour.reduce((a, c) => a + c.total, 0);
+  // ── CALCULS INVENTAIRE PAR JOURNÉE ──
+  const calculerJournees = () => {
+    const parJour = {};
+    stats.forEach(cmd => {
+      const date = new Date(cmd.created_at).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      const dateKey = new Date(cmd.created_at).toDateString();
+      if (!parJour[dateKey]) parJour[dateKey] = { label: date, total: 0, commandes: 0, plats: {}, boissons: {} };
+      parJour[dateKey].total += cmd.total;
+      parJour[dateKey].commandes += 1;
+      (cmd.items || []).forEach(item => {
+        const menuItem = menu.find(m => m.id === item.id || m.nom === item.nom);
+        const categorie = menuItem?.categorie === "Boissons" ? "boissons" : "plats";
+        parJour[dateKey][categorie][item.nom] = (parJour[dateKey][categorie][item.nom] || 0) + item.qte;
+      });
+    });
+    return Object.entries(parJour).sort((a, b) => new Date(b[0]) - new Date(a[0]));
+  };
 
-  const comptageItems = {};
+  const journees = calculerJournees();
+  const caMois = stats.reduce((a, c) => a + c.total, 0);
+
+  const comptageItemsMois = {};
   stats.forEach(cmd => {
     (cmd.items || []).forEach(item => {
-      comptageItems[item.nom] = (comptageItems[item.nom] || 0) + item.qte;
+      comptageItemsMois[item.nom] = (comptageItemsMois[item.nom] || 0) + item.qte;
     });
   });
-  const itemsTries = Object.entries(comptageItems).sort((a, b) => b[1] - a[1]);
-  const platPlusVendu = itemsTries[0];
-  const platMoinsVendu = itemsTries[itemsTries.length - 1];
-  const caMois = stats.reduce((a, c) => a + c.total, 0);
+  const itemsMoisTries = Object.entries(comptageItemsMois).sort((a, b) => b[1] - a[1]);
 
   const chargerCommandesCuisine = async (id) => {
     const { data } = await supabase.from("commandes").select("*").eq("restaurant_id", id).neq("statut", "servi").order("created_at", { ascending: false });
@@ -113,6 +126,13 @@ export default function App() {
     setRestoId(data.id);
     setRestoInfo(data);
     chargerMenu(data.id);
+  };
+
+  // ── FIX BUG JOBS : charger restoInfo depuis la liste ──
+  const chargerRestoInfo = async (id) => {
+    const res = await fetch(`${API}/api/restaurants/code/${id}`);
+    // On va plutôt utiliser une nouvelle route par ID
+    // Pour l'instant on stocke juste les infos disponibles depuis la liste
   };
 
   const totalPanier = Object.entries(panier).reduce((acc, [id, qte]) => {
@@ -327,7 +347,15 @@ export default function App() {
           <input placeholder="🔍 Rechercher un restaurant..." value={recherche} onChange={e => setRecherche(e.target.value)} style={s.input} />
           {filtres.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun restaurant trouvé.</p>}
           {filtres.map(r => (
-            <div key={r.id} onClick={() => { setRestoId(r.id); chargerMenu(r.id); setVue("menu"); }} style={{ ...s.card, cursor: "pointer" }}>
+            <div key={r.id} onClick={async () => {
+              setRestoId(r.id);
+              chargerMenu(r.id);
+              // FIX BUG JOBS : charger les infos complètes du resto via code_unique
+              const res = await fetch(`${API}/api/restaurants/${r.id}/info`);
+              const data = await res.json();
+              if (!data.error) setRestoInfo(data);
+              setVue("menu");
+            }} style={{ ...s.card, cursor: "pointer" }}>
               <p style={{ margin: "0 0 4px", fontWeight: 700 }}>🏪 {r.nom}</p>
               <p style={{ margin: 0, fontSize: 13, opacity: 0.6 }}>{r.ville}</p>
             </div>
@@ -401,7 +429,6 @@ export default function App() {
           <button onClick={() => setVue("liste-restos")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
         </div>
 
-        {/* ONGLETS CLIENT */}
         <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022" }}>
           {[["plats", "🍽️ Plats"], ["boissons", "🥤 Boissons"], ["jobs", "💼 Jobs"]].map(([id, label]) => (
             <button key={id} onClick={() => setOngletMenu(id)} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: ongletMenu === id ? "#FFD700" : "rgba(255,215,0,0.4)", cursor: "pointer", fontSize: 12, fontWeight: ongletMenu === id ? 800 : 500, borderBottom: ongletMenu === id ? "2px solid #FFD700" : "2px solid transparent" }}>
@@ -411,20 +438,8 @@ export default function App() {
         </div>
 
         <div style={{ padding: 16, paddingBottom: 100 }}>
-          {ongletMenu === "plats" && (
-            <>
-              {plats.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun plat disponible.</p>}
-              {plats.map(renderItem)}
-            </>
-          )}
-
-          {ongletMenu === "boissons" && (
-            <>
-              {boissons.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune boisson disponible.</p>}
-              {boissons.map(renderItem)}
-            </>
-          )}
-
+          {ongletMenu === "plats" && (<>{plats.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun plat disponible.</p>}{plats.map(renderItem)}</>)}
+          {ongletMenu === "boissons" && (<>{boissons.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune boisson disponible.</p>}{boissons.map(renderItem)}</>)}
           {ongletMenu === "jobs" && (
             <>
               {infoRecrutement?.actif ? (
@@ -506,11 +521,7 @@ export default function App() {
 
         {onglet === "dashboard" && (
           <div>
-            <div style={{ ...s.card, textAlign: "center" }}>
-              <p style={{ opacity: 0.6 }}>💰 Caisse du jour</p>
-              <p style={{ fontSize: 32, fontWeight: 900 }}>{commandes.reduce((a, c) => a + c.total, 0).toLocaleString()} FCFA</p>
-              <p style={{ opacity: 0.5 }}>{commandes.length} commande(s)</p>
-            </div>
+            {/* STOCK FAIBLE */}
             <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 8 }}>⚠️ Stock faible</p>
               {menu.filter(i => i.stock <= i.seuil_alerte).map(i => (
@@ -521,56 +532,75 @@ export default function App() {
               ))}
               {menu.filter(i => i.stock <= i.seuil_alerte).length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>✅ Tout est en stock !</p>}
             </div>
-            <div style={s.card}>
-              <p style={{ fontWeight: 700, marginBottom: 4 }}>🔑 Votre code unique</p>
-              <p style={{ fontSize: 20, fontWeight: 900, color: "#FFD700", letterSpacing: 4 }}>{gerant?.code_unique}</p>
-            </div>
+
+            {/* INVENTAIRE PAR JOURNÉE */}
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
-              <p style={{ fontWeight: 700, marginBottom: 12 }}>📅 Inventaire du jour</p>
-              <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 8 }}>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ opacity: 0.7 }}>Chiffre d'affaires</span>
-                <span style={{ fontWeight: 800 }}>{caJour.toLocaleString()} FCFA</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ opacity: 0.7 }}>Commandes</span>
-                <span style={{ fontWeight: 800 }}>{commandesJour.length}</span>
-              </div>
-              {platPlusVendu && (
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ opacity: 0.7 }}>⭐ Plus vendu</span>
-                  <span style={{ fontWeight: 800 }}>{platPlusVendu[0]} ({platPlusVendu[1]}x)</span>
-                </div>
-              )}
-              {platMoinsVendu && platMoinsVendu[0] !== platPlusVendu?.[0] && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ opacity: 0.7 }}>📉 Moins vendu</span>
-                  <span style={{ fontWeight: 800 }}>{platMoinsVendu[0]} ({platMoinsVendu[1]}x)</span>
-                </div>
-              )}
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>📅 Inventaire journalier</p>
+              {journees.length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>Aucune donnée pour le moment.</p>}
+              {journees.map(([dateKey, jour]) => {
+                const platsTries = Object.entries(jour.plats).sort((a, b) => b[1] - a[1]);
+                const boissonsTries = Object.entries(jour.boissons).sort((a, b) => b[1] - a[1]);
+                return (
+                  <div key={dateKey} style={{ borderBottom: "1px solid #FFD70033", paddingBottom: 12, marginBottom: 12 }}>
+                    <p style={{ fontWeight: 800, fontSize: 14, marginBottom: 6 }}>📆 {jour.label}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ opacity: 0.7, fontSize: 13 }}>💰 Chiffre d'affaires</span>
+                      <span style={{ fontWeight: 800, fontSize: 13 }}>{jour.total.toLocaleString()} FCFA</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ opacity: 0.7, fontSize: 13 }}>🧾 Commandes</span>
+                      <span style={{ fontWeight: 800, fontSize: 13 }}>{jour.commandes}</span>
+                    </div>
+                    {platsTries.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <p style={{ opacity: 0.6, fontSize: 12, marginBottom: 4 }}>🍽️ Plats :</p>
+                        {platsTries.map(([nom, qte]) => (
+                          <div key={nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2 }}>
+                            <span style={{ opacity: 0.8 }}>• {nom}</span>
+                            <span style={{ fontWeight: 700 }}>{qte}x</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {boissonsTries.length > 0 && (
+                      <div>
+                        <p style={{ opacity: 0.6, fontSize: 12, marginBottom: 4 }}>🥤 Boissons :</p>
+                        {boissonsTries.map(([nom, qte]) => (
+                          <div key={nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2 }}>
+                            <span style={{ opacity: 0.8 }}>• {nom}</span>
+                            <span style={{ fontWeight: 700 }}>{qte}x</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+
+            {/* RÉCAPITULATIF MENSUEL */}
             <div style={{ ...s.card, borderColor: "#FFD70055" }}>
-              <p style={{ fontWeight: 700, marginBottom: 12 }}>📊 Inventaire des 30 derniers jours</p>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>📊 Récapitulatif des 30 derniers jours</p>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ opacity: 0.7 }}>Chiffre d'affaires</span>
+                <span style={{ opacity: 0.7 }}>💰 Chiffre d'affaires total</span>
                 <span style={{ fontWeight: 800 }}>{caMois.toLocaleString()} FCFA</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ opacity: 0.7 }}>Total commandes</span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ opacity: 0.7 }}>🧾 Total commandes</span>
                 <span style={{ fontWeight: 800 }}>{stats.length}</span>
               </div>
-              {itemsTries.length > 0 && (
-                <div style={{ marginTop: 10 }}>
-                  <p style={{ opacity: 0.7, marginBottom: 6, fontSize: 13 }}>🏆 Top articles :</p>
-                  {itemsTries.slice(0, 3).map(([nom, qte], idx) => (
+              {itemsMoisTries.length > 0 && (
+                <div>
+                  <p style={{ opacity: 0.7, marginBottom: 8, fontSize: 13 }}>🏆 Top articles du mois :</p>
+                  {itemsMoisTries.slice(0, 5).map(([nom, qte], idx) => (
                     <div key={nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                      <span>{idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"} {nom}</span>
+                      <span>{idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`} {nom}</span>
                       <span style={{ fontWeight: 700 }}>{qte}x</span>
                     </div>
                   ))}
                 </div>
               )}
-              {itemsTries.length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>Aucune donnée pour le moment.</p>}
+              {itemsMoisTries.length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>Aucune donnée pour le moment.</p>}
             </div>
           </div>
         )}
