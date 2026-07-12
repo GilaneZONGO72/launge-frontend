@@ -41,6 +41,12 @@ export default function App() {
   const [onglet, setOnglet] = useState("dashboard");
   const [stats, setStats] = useState([]);
   const [recrutement, setRecrutement] = useState({ actif: false, poste: "", conditions: "", contact: "" });
+  const [codeCuisine, setCodeCuisine] = useState("");
+  const [nouveauCodeCuisine, setNouveauCodeCuisine] = useState("");
+
+  // ── CONNEXION CUISINE ──
+  const [connexionCuisine, setConnexionCuisine] = useState({ code_unique: "", code_cuisine: "" });
+  const [restoCuisine, setRestoCuisine] = useState(null);
 
   const [commandesCuisine, setCommandesCuisine] = useState([]);
   const [nouvellesCommandes, setNouvellesCommandes] = useState(0);
@@ -62,6 +68,7 @@ export default function App() {
     chargerCommandesCuisine(gerant.id);
     chargerStats(gerant.id);
     if (gerant.recrutement) setRecrutement(gerant.recrutement);
+    if (gerant.code_cuisine) setCodeCuisine(gerant.code_cuisine);
     const channel = supabase.channel("commandes-cuisine")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "commandes", filter: `restaurant_id=eq.${gerant.id}` }, (payload) => {
         setCommandesCuisine(c => [payload.new, ...c]);
@@ -75,13 +82,29 @@ export default function App() {
     return () => supabase.removeChannel(channel);
   }, [gerant?.id]);
 
+  // ── REALTIME POUR VUE CUISINE SÉPARÉE ──
+  useEffect(() => {
+    if (!restoCuisine?.id) return;
+    chargerCommandesCuisine(restoCuisine.id);
+    const channel = supabase.channel("cuisine-separee")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "commandes", filter: `restaurant_id=eq.${restoCuisine.id}` }, (payload) => {
+        setCommandesCuisine(c => [payload.new, ...c]);
+        setNouvellesCommandes(n => n + 1);
+        if (audioRef.current) audioRef.current.play().catch(() => {});
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "commandes", filter: `restaurant_id=eq.${restoCuisine.id}` }, (payload) => {
+        setCommandesCuisine(c => c.map(cmd => cmd.id === payload.new.id ? payload.new : cmd));
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [restoCuisine?.id]);
+
   const chargerStats = async (id) => {
     const res = await fetch(`${API}/api/stats/${id}`);
     const data = await res.json();
     if (!data.error) setStats(data);
   };
 
-  // ── CALCULS INVENTAIRE PAR JOURNÉE ──
   const calculerJournees = () => {
     const parJour = {};
     stats.forEach(cmd => {
@@ -101,13 +124,8 @@ export default function App() {
 
   const journees = calculerJournees();
   const caMois = stats.reduce((a, c) => a + c.total, 0);
-
   const comptageItemsMois = {};
-  stats.forEach(cmd => {
-    (cmd.items || []).forEach(item => {
-      comptageItemsMois[item.nom] = (comptageItemsMois[item.nom] || 0) + item.qte;
-    });
-  });
+  stats.forEach(cmd => { (cmd.items || []).forEach(item => { comptageItemsMois[item.nom] = (comptageItemsMois[item.nom] || 0) + item.qte; }); });
   const itemsMoisTries = Object.entries(comptageItemsMois).sort((a, b) => b[1] - a[1]);
 
   const chargerCommandesCuisine = async (id) => {
@@ -126,13 +144,6 @@ export default function App() {
     setRestoId(data.id);
     setRestoInfo(data);
     chargerMenu(data.id);
-  };
-
-  // ── FIX BUG JOBS : charger restoInfo depuis la liste ──
-  const chargerRestoInfo = async (id) => {
-    const res = await fetch(`${API}/api/restaurants/code/${id}`);
-    // On va plutôt utiliser une nouvelle route par ID
-    // Pour l'instant on stocke juste les infos disponibles depuis la liste
   };
 
   const totalPanier = Object.entries(panier).reduce((acc, [id, qte]) => {
@@ -178,6 +189,26 @@ export default function App() {
     chargerMenu(data.restaurant.id);
     chargerCommandes(data.restaurant.id);
     setVue("gerant");
+  };
+
+  const connecterCuisine = async () => {
+    setLoading(true);
+    const res = await fetch(`${API}/api/restaurants/connexion-cuisine`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(connexionCuisine) });
+    const data = await res.json();
+    setLoading(false);
+    if (data.error) return alert("Erreur : " + data.error);
+    setRestoCuisine(data.restaurant);
+    setVue("vue-cuisine");
+  };
+
+  const sauvegarderCodeCuisine = async () => {
+    if (!nouveauCodeCuisine || nouveauCodeCuisine.length < 4) return alert("Le code cuisine doit avoir au moins 4 caractères.");
+    const res = await fetch(`${API}/api/restaurants/${gerant.id}/code-cuisine`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code_cuisine: nouveauCodeCuisine }) });
+    const data = await res.json();
+    if (data.error) return alert("Erreur : " + data.error);
+    setCodeCuisine(nouveauCodeCuisine);
+    setNouveauCodeCuisine("");
+    alert("✅ Code cuisine sauvegardé !");
   };
 
   const ajouterPlat = async () => {
@@ -262,6 +293,57 @@ export default function App() {
     chargerRestosAdmin();
   };
 
+  // ── VUE CUISINE SÉPARÉE (pour serveur/cuisinier) ──
+  if (vue === "login-cuisine") return (
+    <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
+      <div style={{ fontSize: 50, marginBottom: 16 }}>👨‍🍳</div>
+      <h2 style={{ marginBottom: 24 }}>Espace Cuisine</h2>
+      <div style={{ width: "100%", maxWidth: 320 }}>
+        <input placeholder="Code restaurant (LNG-XXXXX)" value={connexionCuisine.code_unique} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_unique: e.target.value.toUpperCase() })} style={s.input} />
+        <input placeholder="Code cuisine" type="password" value={connexionCuisine.code_cuisine} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_cuisine: e.target.value })} style={s.input} />
+        <button onClick={connecterCuisine} style={{ ...s.btn("#FFD700"), marginBottom: 12 }} disabled={loading}>{loading ? "⏳ Connexion..." : "Accéder à la cuisine"}</button>
+        <button onClick={() => setVue("accueil")} style={s.btn("#111")}>← Retour</button>
+      </div>
+    </div>
+  );
+
+  if (vue === "vue-cuisine") return (
+    <div style={s.page}>
+      <audio ref={audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
+      <div style={s.header}>
+        <div>
+          <p style={{ margin: 0, fontWeight: 800 }}>👨‍🍳 Cuisine — {restoCuisine?.nom}</p>
+          {nouvellesCommandes > 0 && <p style={{ margin: 0, fontSize: 11, color: "#ef4444", fontWeight: 700 }}>{nouvellesCommandes} nouvelle(s) commande(s)</p>}
+        </div>
+        <button onClick={() => { setRestoCuisine(null); setCommandesCuisine([]); setNouvellesCommandes(0); setVue("accueil"); }} style={{ background: "transparent", border: "1px solid #FFD700", borderRadius: 8, color: "#FFD700", cursor: "pointer", padding: "6px 12px", fontSize: 12 }}>Déconnexion</button>
+      </div>
+      <div style={{ padding: 16 }}>
+        {commandesCuisine.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune commande en cours.</p>}
+        {commandesCuisine.map((c) => (
+          <div key={c.id} style={{ ...s.card, borderColor: c.statut === "en_cours" ? "#f97316" : "#FFD700" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontWeight: 800, fontSize: 16 }}>📍 Table {c.numero_table}</span>
+              <span style={{ opacity: 0.5, fontSize: 12 }}>{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              {(c.items || []).map((item, idx) => (
+                <p key={idx} style={{ margin: "2px 0", fontSize: 14 }}>• {item.qte}x {item.nom}</p>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>{STATUT_LABEL[c.statut] || c.statut}</span>
+              {STATUT_SUIVANT[c.statut] && (
+                <button onClick={() => changerStatutCommande(c.id, STATUT_SUIVANT[c.statut])} style={{ ...s.btn("#FFD700"), width: "auto", padding: "8px 16px" }}>
+                  {c.statut === "en_cours" ? "👨‍🍳 Marquer prêt" : "✅ Marquer servi"}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   if (vue === "login-admin") return (
     <div style={{ ...s.page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
       <div style={{ fontSize: 50, marginBottom: 16 }}>🛡️</div>
@@ -330,6 +412,7 @@ export default function App() {
       <p style={{ opacity: 0.5, marginBottom: 48, fontSize: 14 }}>Smart Dining · Cameroun</p>
       <div style={{ width: "100%", maxWidth: 320 }}>
         <button onClick={() => setVue("login-gerant")} style={{ ...s.btn("#FFD700"), marginBottom: 16 }}>🏪 Espace Gérant</button>
+        <button onClick={() => setVue("login-cuisine")} style={{ ...s.btn("#111"), marginBottom: 16 }}>👨‍🍳 Espace Cuisine</button>
         <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={s.btn("#111")}>📱 Je suis un client</button>
       </div>
     </div>
@@ -350,7 +433,6 @@ export default function App() {
             <div key={r.id} onClick={async () => {
               setRestoId(r.id);
               chargerMenu(r.id);
-              // FIX BUG JOBS : charger les infos complètes du resto via code_unique
               const res = await fetch(`${API}/api/restaurants/${r.id}/info`);
               const data = await res.json();
               if (!data.error) setRestoInfo(data);
@@ -428,7 +510,6 @@ export default function App() {
           <span style={{ fontWeight: 800 }}>🍽️ LAUNGE</span>
           <button onClick={() => setVue("liste-restos")} style={{ background: "transparent", border: "none", color: "#FFD700", cursor: "pointer", fontSize: 20 }}>←</button>
         </div>
-
         <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022" }}>
           {[["plats", "🍽️ Plats"], ["boissons", "🥤 Boissons"], ["jobs", "💼 Jobs"]].map(([id, label]) => (
             <button key={id} onClick={() => setOngletMenu(id)} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: ongletMenu === id ? "#FFD700" : "rgba(255,215,0,0.4)", cursor: "pointer", fontSize: 12, fontWeight: ongletMenu === id ? 800 : 500, borderBottom: ongletMenu === id ? "2px solid #FFD700" : "2px solid transparent" }}>
@@ -436,29 +517,23 @@ export default function App() {
             </button>
           ))}
         </div>
-
         <div style={{ padding: 16, paddingBottom: 100 }}>
           {ongletMenu === "plats" && (<>{plats.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun plat disponible.</p>}{plats.map(renderItem)}</>)}
           {ongletMenu === "boissons" && (<>{boissons.length === 0 && <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucune boisson disponible.</p>}{boissons.map(renderItem)}</>)}
           {ongletMenu === "jobs" && (
-            <>
-              {infoRecrutement?.actif ? (
-                <div style={s.card}>
-                  <p style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>💼 Nous recrutons !</p>
-                  <p style={{ fontWeight: 700, marginBottom: 4 }}>Poste recherché</p>
-                  <p style={{ opacity: 0.8, marginBottom: 12 }}>{infoRecrutement.poste}</p>
-                  <p style={{ fontWeight: 700, marginBottom: 4 }}>Conditions</p>
-                  <p style={{ opacity: 0.8, marginBottom: 12 }}>{infoRecrutement.conditions}</p>
-                  <p style={{ fontWeight: 700, marginBottom: 4 }}>Contact</p>
-                  <p style={{ opacity: 0.8 }}>{infoRecrutement.contact}</p>
-                </div>
-              ) : (
-                <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun poste disponible pour le moment.</p>
-              )}
-            </>
+            infoRecrutement?.actif ? (
+              <div style={s.card}>
+                <p style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>💼 Nous recrutons !</p>
+                <p style={{ fontWeight: 700, marginBottom: 4 }}>Poste recherché</p>
+                <p style={{ opacity: 0.8, marginBottom: 12 }}>{infoRecrutement.poste}</p>
+                <p style={{ fontWeight: 700, marginBottom: 4 }}>Conditions</p>
+                <p style={{ opacity: 0.8, marginBottom: 12 }}>{infoRecrutement.conditions}</p>
+                <p style={{ fontWeight: 700, marginBottom: 4 }}>Contact</p>
+                <p style={{ opacity: 0.8 }}>{infoRecrutement.contact}</p>
+              </div>
+            ) : <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40 }}>Aucun poste disponible pour le moment.</p>
           )}
         </div>
-
         {totalPanier > 0 && (
           <div style={{ position: "fixed", bottom: 20, left: 20, right: 20 }}>
             <button onClick={() => setVue("paiement")} style={s.btn("#FFD700")}>🛒 Commander — {totalPanier.toLocaleString()} FCFA</button>
@@ -507,7 +582,7 @@ export default function App() {
       </div>
 
       <div style={{ display: "flex", background: "#111", borderBottom: "1px solid #FFD70022", overflowX: "auto" }}>
-        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["cuisine", "🍳"], ["recrutement", "💼"], ["qrcodes", "📱"]].map(([id, icon]) => (
+        {[["dashboard", "📊"], ["menu", "🍽️"], ["commandes", "🧾"], ["cuisine", "🍳"], ["recrutement", "💼"], ["parametres", "⚙️"], ["qrcodes", "📱"]].map(([id, icon]) => (
           <button key={id} onClick={() => { setOnglet(id); if (id === "cuisine") setNouvellesCommandes(0); }} style={{ flex: 1, padding: "12px 4px", background: "transparent", border: "none", color: onglet === id ? "#FFD700" : "rgba(255,215,0,0.3)", cursor: "pointer", fontSize: 11, fontWeight: onglet === id ? 800 : 500, borderBottom: onglet === id ? "2px solid #FFD700" : "2px solid transparent", whiteSpace: "nowrap", position: "relative" }}>
             {icon} {id}
             {id === "cuisine" && nouvellesCommandes > 0 && (
@@ -521,7 +596,6 @@ export default function App() {
 
         {onglet === "dashboard" && (
           <div>
-            {/* STOCK FAIBLE */}
             <div style={s.card}>
               <p style={{ fontWeight: 700, marginBottom: 8 }}>⚠️ Stock faible</p>
               {menu.filter(i => i.stock <= i.seuil_alerte).map(i => (
@@ -533,7 +607,6 @@ export default function App() {
               {menu.filter(i => i.stock <= i.seuil_alerte).length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>✅ Tout est en stock !</p>}
             </div>
 
-            {/* INVENTAIRE PAR JOURNÉE */}
             <div style={{ ...s.card, borderColor: "#FFD700" }}>
               <p style={{ fontWeight: 700, marginBottom: 12 }}>📅 Inventaire journalier</p>
               {journees.length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>Aucune donnée pour le moment.</p>}
@@ -578,7 +651,6 @@ export default function App() {
               })}
             </div>
 
-            {/* RÉCAPITULATIF MENSUEL */}
             <div style={{ ...s.card, borderColor: "#FFD70055" }}>
               <p style={{ fontWeight: 700, marginBottom: 12 }}>📊 Récapitulatif des 30 derniers jours</p>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -712,12 +784,33 @@ export default function App() {
               </div>
               {recrutement.actif && (
                 <>
-                  <input placeholder="Poste recherché (ex: Serveur, Cuisinier...)" value={recrutement.poste} onChange={e => setRecrutement({ ...recrutement, poste: e.target.value })} style={s.input} />
-                  <textarea placeholder="Conditions (expérience, horaires, salaire...)" value={recrutement.conditions} onChange={e => setRecrutement({ ...recrutement, conditions: e.target.value })} style={{ ...s.input, height: 80, resize: "none" }} />
-                  <input placeholder="Contact (téléphone, email...)" value={recrutement.contact} onChange={e => setRecrutement({ ...recrutement, contact: e.target.value })} style={s.input} />
+                  <input placeholder="Poste recherché" value={recrutement.poste} onChange={e => setRecrutement({ ...recrutement, poste: e.target.value })} style={s.input} />
+                  <textarea placeholder="Conditions" value={recrutement.conditions} onChange={e => setRecrutement({ ...recrutement, conditions: e.target.value })} style={{ ...s.input, height: 80, resize: "none" }} />
+                  <input placeholder="Contact" value={recrutement.contact} onChange={e => setRecrutement({ ...recrutement, contact: e.target.value })} style={s.input} />
                 </>
               )}
               <button onClick={sauvegarderRecrutement} style={s.btn("#FFD700")}>💾 Sauvegarder</button>
+            </div>
+          </div>
+        )}
+
+        {onglet === "parametres" && (
+          <div>
+            <div style={s.card}>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>🔐 Code d'accès cuisine</p>
+              <p style={{ opacity: 0.6, fontSize: 13, marginBottom: 12 }}>Ce code permet à votre cuisinier/serveur d'accéder uniquement à la vue cuisine, sans voir le dashboard ni les données financières.</p>
+              {codeCuisine && (
+                <div style={{ background: "#222", borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+                  <p style={{ opacity: 0.6, fontSize: 12, margin: "0 0 4px" }}>Code actuel :</p>
+                  <p style={{ fontWeight: 800, fontSize: 18, letterSpacing: 4, margin: 0 }}>{codeCuisine}</p>
+                </div>
+              )}
+              <p style={{ opacity: 0.6, fontSize: 13, marginBottom: 8 }}>Votre code restaurant (à donner avec le code cuisine) :</p>
+              <div style={{ background: "#222", borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+                <p style={{ fontWeight: 800, fontSize: 14, letterSpacing: 2, margin: 0 }}>{gerant?.code_unique}</p>
+              </div>
+              <input placeholder="Nouveau code cuisine (min. 4 caractères)" value={nouveauCodeCuisine} onChange={e => setNouveauCodeCuisine(e.target.value)} style={s.input} />
+              <button onClick={sauvegarderCodeCuisine} style={s.btn("#FFD700")}>💾 Sauvegarder le code</button>
             </div>
           </div>
         )}
