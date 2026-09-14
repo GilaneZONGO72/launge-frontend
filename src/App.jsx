@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "./supabaseClient";
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 
 const API = "https://launge-backend-production.up.railway.app";
 
@@ -348,6 +349,39 @@ export default function App() {
   const comptageItems = {};
   stats.forEach(cmd => { (cmd.items || []).forEach(i => { comptageItems[i.nom] = (comptageItems[i.nom] || 0) + i.qte; }); });
   const topItems = Object.entries(comptageItems).sort((a, b) => b[1] - a[1]);
+
+  // Données pour la courbe du CA (7 derniers jours affichés, ordre chronologique)
+  const dataCourbeCA = journees.slice(0, 7).reverse().map(([, j]) => ({
+    jour: j.label.split(" ").slice(1, 3).join(" "),
+    ca: j.total,
+  }));
+
+  // Répartition plats vs boissons (en quantité vendue)
+  let qtePlats = 0, qteBoissons = 0;
+  stats.forEach(cmd => {
+    (cmd.items || []).forEach(it => {
+      const menuItem = menu.find(m => m.nom === it.nom);
+      if (menuItem?.categorie === "Boissons") qteBoissons += it.qte; else qtePlats += it.qte;
+    });
+  });
+  const dataRepartition = [
+    { name: "Plats", value: qtePlats, color: theme.orange },
+    { name: "Boissons", value: qteBoissons, color: theme.gold },
+  ].filter(d => d.value > 0);
+
+  // Top 5 ventes pour le bar chart, couleurs qui alternent sur la palette
+  const paletteBar = [theme.orange, theme.gold, theme.green, theme.purple, "#FF8C42"];
+  const dataTop5 = topItems.slice(0, 5).map(([nom, qte], i) => ({ nom: nom.length > 12 ? nom.slice(0, 12) + "…" : nom, qte, fill: paletteBar[i % paletteBar.length] }));
+
+  const ChartTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: "rgba(15,17,23,0.95)", border: `1px solid ${theme.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12 }}>
+        {label && <div style={{ color: theme.textMuted, marginBottom: 4 }}>{label}</div>}
+        {payload.map((p, i) => <div key={i} style={{ color: p.color || p.fill, fontWeight: 700 }}>{p.name}: {p.value.toLocaleString()}</div>)}
+      </div>
+    );
+  };
 
   const chargerCommandesCuisine = async (id) => {
     const { data } = await supabase.from("commandes").select("*").eq("restaurant_id", id).neq("statut", "servi").order("created_at", { ascending: false });
@@ -878,18 +912,65 @@ export default function App() {
                 </div>
               )}
 
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr)", gap: 14, marginBottom: 24 }}>
+                <div style={s.card}>
+                  <div style={s.sectionTitle}>Évolution du chiffre d'affaires</div>
+                  {dataCourbeCA.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={dataCourbeCA} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="caGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={theme.orange} stopOpacity={0.5} />
+                            <stop offset="100%" stopColor={theme.orange} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke={theme.border} vertical={false} />
+                        <XAxis dataKey="jour" stroke={theme.textMuted} fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke={theme.textMuted} fontSize={11} tickLine={false} axisLine={false} width={0} />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Area type="monotone" dataKey="ca" name="CA (FCFA)" stroke={theme.orange} strokeWidth={3} fill="url(#caGradient)" dot={{ fill: theme.gold, r: 4 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : <div style={{ color: theme.textMuted, fontSize: 13, padding: "40px 0", textAlign: "center" }}>Pas encore assez de données.</div>}
+                </div>
+
+                <div style={s.card}>
+                  <div style={s.sectionTitle}>Plats vs Boissons</div>
+                  {dataRepartition.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie data={dataRepartition} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4}>
+                          {dataRepartition.map((d, i) => <Cell key={i} fill={d.color} stroke="none" />)}
+                        </Pie>
+                        <Tooltip content={<ChartTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : <div style={{ color: theme.textMuted, fontSize: 13, padding: "40px 0", textAlign: "center" }}>Pas encore assez de données.</div>}
+                  {dataRepartition.length > 0 && (
+                    <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 4 }}>
+                      {dataRepartition.map(d => (
+                        <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.textSecondary }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />{d.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div style={s.sectionTitle}>Top des ventes</div>
               <div style={s.card}>
-                {topItems.slice(0, 5).map(([nom, qte], i) => (
-                  <div key={nom} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < 4 ? `1px solid ${theme.border}` : "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ ...s.badge(theme.gold), width: 22, height: 22, justifyContent: "center", padding: 0 }}>{i + 1}</span>
-                      <span style={{ fontSize: 14 }}>{nom}</span>
-                    </div>
-                    <span style={{ fontWeight: 700, color: theme.gold }}>{qte} vendus</span>
-                  </div>
-                ))}
-                {topItems.length === 0 && <div style={{ color: theme.textMuted, fontSize: 13 }}>Pas encore de données.</div>}
+                {dataTop5.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={Math.max(180, dataTop5.length * 44)}>
+                    <BarChart data={dataTop5} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid stroke={theme.border} horizontal={false} />
+                      <XAxis type="number" stroke={theme.textMuted} fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis type="category" dataKey="nom" stroke={theme.textSecondary} fontSize={12} tickLine={false} axisLine={false} width={100} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                      <Bar dataKey="qte" name="Vendus" radius={[0, 8, 8, 0]} barSize={22} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <div style={{ color: theme.textMuted, fontSize: 13 }}>Pas encore de données.</div>}
               </div>
 
               <div style={{ ...s.sectionTitle, marginTop: 24 }}>Historique par journée</div>
