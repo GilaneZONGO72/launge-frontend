@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "./supabaseClient";
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 
 const API = "https://launge-backend-production.up.railway.app";
 
@@ -216,9 +215,6 @@ const Icons = {
   plus: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
   image: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
   trending: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-  minus: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  table: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="4" rx="1"/><line x1="6" y1="8" x2="6" y2="20"/><line x1="18" y1="8" x2="18" y2="20"/></svg>,
 };
 
 const LogoLaunge = ({ size = 36 }) => (
@@ -350,39 +346,6 @@ export default function App() {
   stats.forEach(cmd => { (cmd.items || []).forEach(i => { comptageItems[i.nom] = (comptageItems[i.nom] || 0) + i.qte; }); });
   const topItems = Object.entries(comptageItems).sort((a, b) => b[1] - a[1]);
 
-  // Données pour la courbe du CA (7 derniers jours affichés, ordre chronologique)
-  const dataCourbeCA = journees.slice(0, 7).reverse().map(([, j]) => ({
-    jour: j.label.split(" ").slice(1, 3).join(" "),
-    ca: j.total,
-  }));
-
-  // Répartition plats vs boissons (en quantité vendue)
-  let qtePlats = 0, qteBoissons = 0;
-  stats.forEach(cmd => {
-    (cmd.items || []).forEach(it => {
-      const menuItem = menu.find(m => m.nom === it.nom);
-      if (menuItem?.categorie === "Boissons") qteBoissons += it.qte; else qtePlats += it.qte;
-    });
-  });
-  const dataRepartition = [
-    { name: "Plats", value: qtePlats, color: theme.orange },
-    { name: "Boissons", value: qteBoissons, color: theme.gold },
-  ].filter(d => d.value > 0);
-
-  // Top 5 ventes pour le bar chart, couleurs qui alternent sur la palette
-  const paletteBar = [theme.orange, theme.gold, theme.green, theme.purple, "#FF8C42"];
-  const dataTop5 = topItems.slice(0, 5).map(([nom, qte], i) => ({ nom: nom.length > 12 ? nom.slice(0, 12) + "…" : nom, qte, fill: paletteBar[i % paletteBar.length] }));
-
-  const ChartTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null;
-    return (
-      <div style={{ background: "rgba(15,17,23,0.95)", border: `1px solid ${theme.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12 }}>
-        {label && <div style={{ color: theme.textMuted, marginBottom: 4 }}>{label}</div>}
-        {payload.map((p, i) => <div key={i} style={{ color: p.color || p.fill, fontWeight: 700 }}>{p.name}: {p.value.toLocaleString()}</div>)}
-      </div>
-    );
-  };
-
   const chargerCommandesCuisine = async (id) => {
     const { data } = await supabase.from("commandes").select("*").eq("restaurant_id", id).neq("statut", "servi").order("created_at", { ascending: false });
     if (data) setCommandesCuisine(data);
@@ -396,7 +359,6 @@ export default function App() {
     setRestoId(data.id); setRestoInfo(data); chargerMenu(data.id);
   };
   const totalPanier = Object.entries(panier).reduce((acc, [id, qte]) => { const item = menu.find(i => i.id === id); return acc + (item ? item.prix * qte : 0); }, 0);
-  const nbArticlesPanier = Object.values(panier).reduce((a, q) => a + q, 0);
   const chargerMenu = async (id) => { const res = await fetch(`${API}/api/menu/${id}`); const data = await res.json(); setMenu(data); };
   const chargerCommandes = async (id) => { const res = await fetch(`${API}/api/commandes/${id}`); const data = await res.json(); setCommandes(data); };
   const chargerRestos = async () => { const res = await fetch(`${API}/api/restaurants`); const data = await res.json(); setRestos(data); };
@@ -493,643 +455,720 @@ export default function App() {
   const validerResto = async (id) => { await fetch(`${API}/api/admin/restaurants/${id}/valider`, { method: "PUT" }); chargerRestosAdmin(); };
   const refuserResto = async (id) => { await fetch(`${API}/api/admin/restaurants/${id}/refuser`, { method: "PUT" }); chargerRestosAdmin(); };
   const supprimerResto = async (id) => { if (!confirm("Supprimer ce restaurant ?")) return; await fetch(`${API}/api/admin/restaurants/${id}`, { method: "DELETE" }); chargerRestosAdmin(); };
+  // ── VUE CUISINE SÉPARÉE ──
+  if (vue === "login-cuisine") return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f8f9ff 0%, #fff5f0 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(255,107,53,0.35)", color: "#fff" }}>{Icons.chef}</div>
+          <h2 style={{ fontWeight: 800, fontSize: 24, color: "#1a1a2e", margin: "0 0 6px" }}>Espace Cuisine</h2>
+          <p style={{ color: "#9ca3af", fontSize: 14, margin: 0 }}>Accès réservé au personnel</p>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 24, padding: 28, boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+          <label style={{ ...s.label, color: "#6b7280" }}>Code restaurant</label>
+          <input placeholder="LNG-XXXXX" value={connexionCuisine.code_unique} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_unique: e.target.value.toUpperCase() })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+          <label style={{ ...s.label, color: "#6b7280" }}>Code cuisine</label>
+          <input placeholder="••••" type="password" value={connexionCuisine.code_cuisine} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_cuisine: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+          <button onClick={connecterCuisine} style={{ ...s.btnOrange, marginTop: 8 }} disabled={loading}>{loading ? "Connexion..." : "Accéder à la cuisine"}</button>
+        </div>
+        <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 12, color: "#6b7280", borderColor: "#e5e7eb" }}>← Retour</button>
+      </div>
+    </div>
+  );
 
-  // ============================================================
-  // VUE : ACCUEIL
-  // ============================================================
-  if (vue === "accueil") {
-    return (
-      <div style={{ ...s.page, background: gradients.hero }}>
-        <div style={{ maxWidth: 480, margin: "0 auto", padding: "60px 24px", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-          <div style={{ marginBottom: 50 }}><LogoLaunge size={44} /></div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <div style={s.badge(theme.orange)}>Le menu digital des restaurateurs</div>
-            <h1 style={{ fontSize: 38, fontWeight: 800, lineHeight: 1.15, margin: "20px 0 14px" }}>
-              Votre restaurant,<br/>servi en un <span style={{ background: "linear-gradient(135deg, #FF6B35, #FFD700)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>scan.</span>
-            </h1>
-            <p style={{ color: theme.textSecondary, fontSize: 15, lineHeight: 1.6, marginBottom: 36 }}>
-              Menu digital, commandes en direct, cuisine synchronisée et statistiques claires — tout ce qu'il faut pour piloter votre salle depuis votre poche.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <button style={s.btnOrange} onClick={() => setVue("login-gerant")}>{Icons.store} <span style={{ marginLeft: 8 }}>Espace gérant</span></button>
-              <button style={s.btnGhost} onClick={() => setVue("inscription-gerant")}>Créer mon restaurant sur Launge</button>
-              <button style={{ ...s.btnGhost, borderColor: "rgba(0,200,150,0.25)", color: theme.green }} onClick={() => setVue("login-cuisine")}>{Icons.chef} <span style={{ marginLeft: 8 }}>Accès cuisine</span></button>
-            </div>
+  if (vue === "vue-cuisine") return (
+    <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+      <audio ref={audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
+      <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{Icons.chef}</div>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>Cuisine — {restoCuisine?.nom}</p>
+            {nouvellesCommandes > 0 && <p style={{ margin: 0, fontSize: 11, color: theme.orange, fontWeight: 600 }}>{nouvellesCommandes} nouvelle(s) commande(s)</p>}
           </div>
-          <div style={{ display: "flex", gap: 20, justifyContent: "center", paddingTop: 30, borderTop: `1px solid ${theme.border}` }}>
-            {[["Menu client", theme.orange], ["Cuisine live", theme.green], ["Statistiques", theme.purple]].map(([label, color]) => (
-              <div key={label} style={{ ...s.chip(color), fontSize: 10 }}>{label}</div>
-            ))}
+        </div>
+        <button onClick={() => { setRestoCuisine(null); setCommandesCuisine([]); setNouvellesCommandes(0); setVue("accueil"); }} style={{ ...s.btnDanger, fontSize: 13 }}>Quitter</button>
+      </div>
+      <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
+        {commandesCuisine.length === 0 && (
+          <div style={{ textAlign: "center", padding: "80px 20px" }}>
+            <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(0,200,150,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: theme.green }}>{Icons.check}</div>
+            <p style={{ color: "#9ca3af", fontSize: 15 }}>Aucune commande en attente</p>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VUE : LOGIN GÉRANT
-  // ============================================================
-  if (vue === "login-gerant") {
-    return (
-      <div style={s.page}>
-        <div style={{ maxWidth: 420, margin: "0 auto", padding: "40px 24px" }}>
-          <button onClick={() => setVue("accueil")} style={{ background: "none", border: "none", color: theme.textSecondary, cursor: "pointer", marginBottom: 30, display: "flex", alignItems: "center", gap: 6 }}>{Icons.back} Retour</button>
-          <div style={{ marginBottom: 36 }}><LogoLaunge size={36} /></div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Connexion gérant</h2>
-          <p style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 28 }}>Accédez à votre tableau de bord restaurant.</p>
-          <label style={s.label}>Email</label>
-          <input style={s.input} placeholder="vous@restaurant.com" value={connexion.email} onChange={e => setConnexion({ ...connexion, email: e.target.value })} />
-          <label style={s.label}>Mot de passe</label>
-          <input style={s.input} type="password" placeholder="••••••••" value={connexion.mot_de_passe} onChange={e => setConnexion({ ...connexion, mot_de_passe: e.target.value })} />
-          <button style={{ ...s.btnOrange, marginTop: 8, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={connecterGerant}>{loading ? "Connexion..." : "Se connecter"}</button>
-          <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: theme.textSecondary }}>
-            Pas encore de compte ? <span style={{ color: theme.gold, cursor: "pointer", fontWeight: 600 }} onClick={() => setVue("inscription-gerant")}>Inscrivez votre restaurant</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VUE : INSCRIPTION GÉRANT
-  // ============================================================
-  if (vue === "inscription-gerant") {
-    return (
-      <div style={s.page}>
-        <div style={{ maxWidth: 420, margin: "0 auto", padding: "40px 24px" }}>
-          <button onClick={() => setVue("accueil")} style={{ background: "none", border: "none", color: theme.textSecondary, cursor: "pointer", marginBottom: 30, display: "flex", alignItems: "center", gap: 6 }}>{Icons.back} Retour</button>
-          <div style={{ marginBottom: 36 }}><LogoLaunge size={36} /></div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Créer mon restaurant</h2>
-          <p style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 28 }}>Votre compte sera activé après validation.</p>
-          <label style={s.label}>Nom du restaurant</label>
-          <input style={s.input} placeholder="Chez Bella" value={inscription.nom} onChange={e => setInscription({ ...inscription, nom: e.target.value })} />
-          <label style={s.label}>Ville</label>
-          <input style={s.input} placeholder="Douala" value={inscription.ville} onChange={e => setInscription({ ...inscription, ville: e.target.value })} />
-          <label style={s.label}>Téléphone</label>
-          <input style={s.input} placeholder="6XX XXX XXX" value={inscription.telephone} onChange={e => setInscription({ ...inscription, telephone: e.target.value })} />
-          <label style={s.label}>Email</label>
-          <input style={s.input} placeholder="vous@restaurant.com" value={inscription.email} onChange={e => setInscription({ ...inscription, email: e.target.value })} />
-          <label style={s.label}>Mot de passe</label>
-          <input style={s.input} type="password" placeholder="••••••••" value={inscription.mot_de_passe} onChange={e => setInscription({ ...inscription, mot_de_passe: e.target.value })} />
-          <button style={{ ...s.btnGold, marginTop: 8, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={inscrireGerant}>{loading ? "Création..." : "Créer mon compte"}</button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VUE : LOGIN CUISINE
-  // ============================================================
-  if (vue === "login-cuisine") {
-    return (
-      <div style={s.page}>
-        <div style={{ maxWidth: 420, margin: "0 auto", padding: "40px 24px" }}>
-          <button onClick={() => setVue("accueil")} style={{ background: "none", border: "none", color: theme.textSecondary, cursor: "pointer", marginBottom: 30, display: "flex", alignItems: "center", gap: 6 }}>{Icons.back} Retour</button>
-          <div style={{ ...s.badge(theme.green), marginBottom: 20 }}>{Icons.chef} <span style={{ marginLeft: 6 }}>Accès cuisine</span></div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Poste cuisine</h2>
-          <p style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 28 }}>Renseignez le code restaurant et le code cuisine fournis par votre gérant.</p>
-          <label style={s.label}>Code restaurant</label>
-          <input style={s.input} placeholder="Ex: BELLA23" value={connexionCuisine.code_unique} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_unique: e.target.value })} />
-          <label style={s.label}>Code cuisine</label>
-          <input style={s.input} type="password" placeholder="Code cuisine" value={connexionCuisine.code_cuisine} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_cuisine: e.target.value })} />
-          <button style={{ ...s.btnGreen, width: "100%", padding: "15px 24px", fontSize: 15, marginTop: 8, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={connecterCuisine}>{loading ? "Connexion..." : "Entrer en cuisine"}</button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VUE : CUISINE (file d'attente temps réel)
-  // ============================================================
-  if (vue === "vue-cuisine") {
-    const enCours = commandesCuisine.filter(c => c.statut === "en_cours");
-    const prets = commandesCuisine.filter(c => c.statut === "pret");
-    const Colonne = ({ titre, liste, color }) => (
-      <div style={{ flex: 1, minWidth: 280 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
-          <span style={{ fontWeight: 700, fontSize: 13, color, letterSpacing: "0.5px" }}>{titre} ({liste.length})</span>
-        </div>
-        {liste.length === 0 && <div style={{ ...s.card, textAlign: "center", color: theme.textMuted, fontSize: 13 }}>Rien pour l'instant</div>}
-        {liste.map(cmd => (
-          <div key={cmd.id} style={{ ...s.card, borderLeft: `3px solid ${color}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={s.chip(theme.gold)}>{Icons.table} Table {cmd.numero_table}</span>
-              <span style={{ fontSize: 11, color: theme.textMuted }}>{new Date(cmd.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
-            </div>
-            {(cmd.items || []).map((it, idx) => (
-              <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}>
-                <span>{it.nom}</span><span style={{ color: theme.gold, fontWeight: 700 }}>x{it.qte}</span>
+        )}
+        {commandesCuisine.map(c => (
+          <div key={c.id} style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 14, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", borderLeft: `4px solid ${STATUT_COLOR[c.statut] || theme.orange}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontWeight: 800, fontSize: 17, color: "#1a1a2e" }}>Table {c.numero_table}</span>
+                <span style={s.badge(STATUT_COLOR[c.statut] || theme.orange)}>{STATUT_LABEL[c.statut]}</span>
               </div>
-            ))}
-            <button style={{ ...s.btnGreen, width: "100%", marginTop: 12 }} onClick={() => changerStatut(cmd.id, STATUT_SUIVANT[cmd.statut])}>
-              {cmd.statut === "en_cours" ? "Marquer prêt" : "Marquer servi"}
-            </button>
+              <span style={{ color: "#9ca3af", fontSize: 12 }}>{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+            <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid #f0f0f5" }}>
+              {(c.items || []).map((item, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 6, color: "#374151" }}>
+                  <span>{item.nom}</span>
+                  <span style={{ fontWeight: 700, color: theme.orange }}>×{item.qte}</span>
+                </div>
+              ))}
+            </div>
+            {STATUT_SUIVANT[c.statut] && (
+              <button onClick={() => changerStatut(c.id, STATUT_SUIVANT[c.statut])} style={{ ...s.btnGreen, width: "100%", padding: "12px" }}>
+                {c.statut === "en_cours" ? "Marquer comme prêt" : "Marquer comme servi"}
+              </button>
+            )}
           </div>
         ))}
       </div>
-    );
-    return (
-      <div style={s.page}>
-        <audio ref={audioRef} src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" />
-        <div style={s.header}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {Icons.chef}
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{restoCuisine?.nom}</div>
-              <div style={{ fontSize: 11, color: theme.textMuted }}>Poste cuisine</div>
-            </div>
-          </div>
-          <button style={{ background: "none", border: "none", color: theme.textSecondary, cursor: "pointer" }} onClick={() => { setRestoCuisine(null); setCommandesCuisine([]); setVue("accueil"); }}>{Icons.logout}</button>
+    </div>
+  );
+
+  if (vue === "login-admin") return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #1a0a2e, #0F1117)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ textAlign: "center", marginBottom: 32, color: "#fff" }}>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.purple, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(124,58,237,0.4)", color: "#fff" }}>{Icons.shield}</div>
+          <h2 style={{ fontWeight: 800, fontSize: 24, margin: "0 0 6px" }}>Administration</h2>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, margin: 0 }}>Accès restreint</p>
         </div>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: 20, display: "flex", gap: 20, flexWrap: "wrap" }}>
-          <Colonne titre="En préparation" liste={enCours} color={theme.orange} />
-          <Colonne titre="Prêt à servir" liste={prets} color={theme.green} />
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 24, padding: 28, border: "1px solid rgba(255,255,255,0.1)" }}>
+          <input placeholder="Email administrateur" type="email" value={connexionAdmin.email} onChange={e => setConnexionAdmin({ ...connexionAdmin, email: e.target.value })} style={{ ...s.input, marginBottom: 12 }} />
+          <input placeholder="••••••••" type="password" value={connexionAdmin.mot_de_passe} onChange={e => setConnexionAdmin({ ...connexionAdmin, mot_de_passe: e.target.value })} style={s.input} />
+          <button onClick={connecterAdmin} style={{ background: gradients.purple, color: "#fff", border: "none", borderRadius: 14, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", width: "100%", boxShadow: "0 4px 20px rgba(124,58,237,0.4)" }} disabled={loading}>{loading ? "Connexion..." : "Se connecter"}</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (vue === "admin-dashboard") {
+    const enAttente = restosAdmin.filter(r => r.statut === "en_attente");
+    const valides = restosAdmin.filter(r => r.statut === "valide");
+    const refuses = restosAdmin.filter(r => r.statut === "refuse");
+    return (
+      <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+        <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: gradients.purple, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{Icons.shield}</div>
+            <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Administration Launge</span>
+          </div>
+          <button onClick={() => { setAdmin(null); setVue("accueil"); }} style={{ ...s.btnDanger, fontSize: 13 }}>Déconnexion</button>
+        </div>
+        <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
+          {enAttente.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, marginTop: 4 }}>
+                <span style={{ ...s.sectionTitle, margin: 0, color: theme.orange }}>En attente de validation</span>
+                <span style={{ ...s.badge(theme.orange), fontSize: 10 }}>{enAttente.length}</span>
+              </div>
+              {enAttente.map(r => (
+                <div key={r.id} style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", borderLeft: `4px solid ${theme.orange}` }}>
+                  <p style={{ fontWeight: 700, margin: "0 0 4px", color: "#1a1a2e", fontSize: 16 }}>{r.nom}</p>
+                  <p style={{ fontSize: 13, color: "#9ca3af", margin: "0 0 14px" }}>{r.ville} · {r.email} · {r.telephone}</p>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => validerResto(r.id)} style={{ ...s.btnGreen, flex: 1, padding: "11px" }}>Valider</button>
+                    <button onClick={() => refuserResto(r.id)} style={{ ...s.btnDanger, flex: 1 }}>Refuser</button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+          <p style={{ ...s.sectionTitle, marginTop: 20 }}>Restaurants actifs ({valides.length})</p>
+          {valides.map(r => (
+            <div key={r.id} style={{ background: "#fff", borderRadius: 16, padding: 16, marginBottom: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <p style={{ fontWeight: 600, margin: "0 0 2px", color: "#1a1a2e" }}>{r.nom}</p>
+                <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{r.ville}</p>
+              </div>
+              <button onClick={() => supprimerResto(r.id)} style={s.btnDanger}>Supprimer</button>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  // ============================================================
-  // VUE : MENU CLIENT
-  // ============================================================
-  if (vue === "menu") {
-    const categories = ongletMenu === "plats" ? ["Plats", "Entrées", "Desserts"] : ["Boissons"];
-    const menuFiltre = menu.filter(m => categories.includes(m.categorie) && m.nom.toLowerCase().includes(recherche.toLowerCase()));
-    return (
-      <div style={s.page}>
-        <div style={{ ...s.header, flexDirection: "column", alignItems: "stretch", gap: 12, paddingBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 17 }}>{restoInfo?.nom || "Menu"}</div>
-              <div style={{ fontSize: 11, color: theme.textMuted, display: "flex", alignItems: "center", gap: 4 }}>{Icons.table} Table {numeroTable}</div>
+  if (vue === "accueil") return (
+    <div style={{ minHeight: "100vh", fontFamily: theme.font, background: "#fff", overflow: "hidden" }}>
+      {/* HERO */}
+      <div style={{ background: "linear-gradient(135deg, #FF6B35 0%, #FFD700 50%, #FF6B35 100%)", backgroundSize: "200% 200%", padding: "60px 24px 80px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.1)" }}></div>
+        <div style={{ position: "absolute", bottom: -60, left: -30, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }}></div>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)", borderRadius: 100, padding: "8px 20px", marginBottom: 24 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: "0 0 8px #fff" }}></div>
+            <span style={{ color: "#fff", fontSize: 12, fontWeight: 600, letterSpacing: "1px" }}>SMART DINING · CAMEROUN</span>
+          </div>
+          <h1 style={{ fontSize: 52, fontWeight: 900, color: "#fff", margin: "0 0 12px", letterSpacing: "-2px", textShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>LAUNGE</h1>
+          <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 16, margin: "0 0 40px", fontWeight: 400 }}>La révolution digitale des restaurants camerounais</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320, margin: "0 auto" }}>
+            <button onClick={() => setVue("login-gerant")} style={{ background: "#fff", color: theme.orange, border: "none", borderRadius: 16, padding: "16px 24px", fontWeight: 800, fontSize: 16, cursor: "pointer", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              {Icons.store} Espace Gérant
+            </button>
+            <button onClick={() => setVue("login-cuisine")} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "2px solid rgba(255,255,255,0.4)", borderRadius: 16, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              {Icons.chef} Espace Cuisine
+            </button>
+            <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "2px solid rgba(255,255,255,0.3)", borderRadius: 16, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              {Icons.user} Je suis un client
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* FEATURES */}
+      <div style={{ padding: "32px 20px", background: "#fff" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {[
+            { icon: "📱", title: "QR Code", desc: "Commande depuis la table", color: theme.orange },
+            { icon: "⚡", title: "Temps réel", desc: "Commandes en cuisine", color: "#3B82F6" },
+            { icon: "📊", title: "Inventaire", desc: "Suivi automatique", color: theme.green },
+            { icon: "🛡️", title: "Sécurisé", desc: "Accès par rôle", color: theme.purple },
+          ].map((f, i) => (
+            <div key={i} style={{ background: "#f8f9ff", borderRadius: 16, padding: "16px 14px", border: "1px solid #f0f0f5" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
+              <p style={{ fontWeight: 700, fontSize: 14, color: "#1a1a2e", margin: "0 0 4px" }}>{f.title}</p>
+              <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{f.desc}</p>
             </div>
-            <div style={s.badge(theme.orange)}>{Icons.cart} <span style={{ marginLeft: 6 }}>{nbArticlesPanier}</span></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (vue === "liste-restos") {
+    const filtres = restos.filter(r => r.nom.toLowerCase().includes(recherche.toLowerCase()));
+    return (
+      <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+        <div style={{ background: gradients.orange, padding: "20px 20px 70px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+            <button onClick={() => setVue("accueil")} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: "8px 12px", color: "#fff", cursor: "pointer" }}>{Icons.back}</button>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Restaurants</span>
+            <div style={{ width: 38 }}></div>
           </div>
           <div style={{ position: "relative" }}>
-            <span style={{ position: "absolute", left: 14, top: 12, color: theme.textMuted }}>{Icons.search}</span>
-            <input style={{ ...s.input, paddingLeft: 40, marginBottom: 0 }} placeholder="Rechercher un plat..." value={recherche} onChange={e => setRecherche(e.target.value)} />
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setOngletMenu("plats")} style={{ flex: 1, padding: "10px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: theme.font, background: ongletMenu === "plats" ? gradients.orange : "rgba(255,255,255,0.05)", color: ongletMenu === "plats" ? "#fff" : theme.textSecondary }}>{Icons.food} <span style={{ marginLeft: 6 }}>Plats</span></button>
-            <button onClick={() => setOngletMenu("boissons")} style={{ flex: 1, padding: "10px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: theme.font, background: ongletMenu === "boissons" ? gradients.gold : "rgba(255,255,255,0.05)", color: ongletMenu === "boissons" ? "#0F1117" : theme.textSecondary }}>{Icons.drink} <span style={{ marginLeft: 6 }}>Boissons</span></button>
+            <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.7)" }}>{Icons.search}</div>
+            <input placeholder="Rechercher un restaurant..." value={recherche} onChange={e => setRecherche(e.target.value)} style={{ ...s.input, paddingLeft: 44, marginBottom: 0, background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 14 }} />
           </div>
         </div>
-
-        <div style={{ maxWidth: 600, margin: "0 auto", padding: "16px 16px 120px" }}>
-          {categories.map(cat => {
-            const items = menuFiltre.filter(m => m.categorie === cat);
-            if (items.length === 0) return null;
-            return (
-              <div key={cat} style={{ marginBottom: 24 }}>
-                <div style={s.sectionTitle}>{cat}</div>
-                {items.map(item => {
-                  const qte = panier[item.id] || 0;
-                  const rupture = item.stock <= 0;
-                  const stockBas = item.stock > 0 && item.stock <= (item.seuil_alerte || 3);
-                  return (
-                    <div key={item.id} style={{ ...s.card, display: "flex", gap: 14, alignItems: "center", opacity: rupture ? 0.5 : 1 }}>
-                      <ImagePlat url={item.image_url} nom={item.nom} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          {item.nom}
-                          {stockBas && !rupture && <span style={{ ...s.chip(theme.orange), fontSize: 9 }}>Bientôt épuisé</span>}
-                          {rupture && <span style={{ ...s.chip(theme.red), fontSize: 9 }}>Rupture</span>}
-                        </div>
-                        <div style={{ color: theme.gold, fontWeight: 800, fontSize: 15 }}>{item.prix} FCFA</div>
-                      </div>
-                      {!rupture && (
-                        qte === 0
-                          ? <button onClick={() => modifier(item.id, 1)} style={{ background: gradients.orange, border: "none", borderRadius: 12, width: 38, height: 38, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{Icons.plus}</button>
-                          : <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "4px 6px", flexShrink: 0 }}>
-                              <button onClick={() => modifier(item.id, -1)} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, width: 26, height: 26, color: theme.textPrimary, cursor: "pointer" }}>{Icons.minus}</button>
-                              <span style={{ fontWeight: 700, minWidth: 16, textAlign: "center" }}>{qte}</span>
-                              <button onClick={() => modifier(item.id, 1)} style={{ background: gradients.orange, border: "none", borderRadius: 8, width: 26, height: 26, color: "#fff", cursor: "pointer" }}>{Icons.plus}</button>
-                            </div>
-                      )}
-                    </div>
-                  );
-                })}
+        <div style={{ padding: "0 16px", marginTop: -40 }}>
+          {filtres.length === 0 && <div style={{ background: "#fff", borderRadius: 20, padding: 40, textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}><p style={{ color: "#9ca3af" }}>Aucun restaurant trouvé</p></div>}
+          {filtres.map(r => (
+            <div key={r.id} onClick={async () => {
+              setRestoId(r.id); chargerMenu(r.id);
+              const res = await fetch(`${API}/api/restaurants/${r.id}/info`);
+              const data = await res.json();
+              if (!data.error) setRestoInfo(data);
+              setVue("menu");
+            }} style={{ background: "#fff", borderRadius: 20, padding: 18, marginBottom: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}>
+              <div style={{ width: 54, height: 54, borderRadius: 16, background: "linear-gradient(135deg, #fff5f0, #fff8e7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0, border: "1px solid #f0f0f5" }}>🍽️</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 700, fontSize: 16, color: "#1a1a2e", margin: "0 0 4px" }}>{r.nom}</p>
+                <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>{r.ville}</p>
               </div>
-            );
-          })}
-          {menuFiltre.length === 0 && <div style={{ textAlign: "center", color: theme.textMuted, padding: 40 }}>Aucun résultat pour "{recherche}"</div>}
+              <div style={{ color: theme.orange }}>›</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (vue === "inscription") return (
+    <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+      <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", alignItems: "center", gap: 12 }}>
+        <button onClick={() => setVue("login-gerant")} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }}>{Icons.back}</button>
+        <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Inscrire mon restaurant</span>
+      </div>
+      <div style={{ padding: 20, maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ background: "#fff", borderRadius: 24, padding: 24, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+          {[{ k: "nom", l: "Nom du restaurant", p: "Ex: Le Gourmet", t: "text" }, { k: "ville", l: "Ville", p: "Ex: Douala", t: "text" }, { k: "telephone", l: "Téléphone", p: "690 000 000", t: "text" }, { k: "email", l: "Email", p: "contact@resto.com", t: "email" }, { k: "mot_de_passe", l: "Mot de passe", p: "••••••••", t: "password" }].map(f => (
+            <div key={f.k}>
+              <label style={{ ...s.label, color: "#6b7280" }}>{f.l}</label>
+              <input placeholder={f.p} type={f.t} value={inscription[f.k]} onChange={e => setInscription({ ...inscription, [f.k]: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+            </div>
+          ))}
+          <button onClick={inscrireGerant} style={s.btnOrange} disabled={loading}>{loading ? "Création..." : "Créer mon compte"}</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (vue === "login-gerant") return (
+    <div style={{ minHeight: "100vh", background: "#f8f9ff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(255,107,53,0.3)", color: "#fff", fontSize: 28 }}>🏪</div>
+          <h2 style={{ fontWeight: 800, fontSize: 24, color: "#1a1a2e", margin: "0 0 6px" }}>Bienvenue</h2>
+          <p style={{ color: "#9ca3af", fontSize: 14, margin: 0 }}>Connectez-vous à votre espace</p>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 24, padding: 28, boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+          <label style={{ ...s.label, color: "#6b7280" }}>Adresse email</label>
+          <input placeholder="votre@email.com" type="email" value={connexion.email} onChange={e => setConnexion({ ...connexion, email: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+          <label style={{ ...s.label, color: "#6b7280" }}>Mot de passe</label>
+          <input placeholder="••••••••" type="password" value={connexion.mot_de_passe} onChange={e => setConnexion({ ...connexion, mot_de_passe: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+          <button onClick={connecterGerant} style={{ ...s.btnOrange, marginTop: 4 }} disabled={loading}>{loading ? "Connexion..." : "Se connecter"}</button>
+        </div>
+        <button onClick={() => setVue("inscription")} style={{ ...s.btnGhost, marginTop: 12, borderColor: "#e5e7eb", color: "#6b7280" }}>Inscrire mon restaurant</button>
+        <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 10, borderColor: "#e5e7eb", color: "#9ca3af" }}>← Retour</button>
+      </div>
+    </div>
+  );
+
+  if (vue === "menu") {
+    const plats = menu.filter(i => i.categorie !== "Boissons");
+    const boissons = menu.filter(i => i.categorie === "Boissons");
+    const infoRecrutement = restoInfo?.recrutement;
+
+    const renderItem = (item) => {
+      const qte = panier[item.id] || 0;
+      return (
+        <div key={item.id} style={{ background: "#fff", borderRadius: 20, padding: 16, marginBottom: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", gap: 14, alignItems: "center", opacity: item.stock === 0 ? 0.6 : 1 }}>
+          <ImagePlat url={item.image_url} nom={item.nom} size={70} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e", margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.nom}</p>
+            <p style={{ fontWeight: 800, color: theme.orange, fontSize: 15, margin: "0 0 6px" }}>{item.prix.toLocaleString()} FCFA</p>
+            {item.stock === 0
+              ? <span style={s.badge(theme.red)}>Épuisé</span>
+              : <span style={s.chip("#22c55e")}>{item.stock} disponibles</span>}
+          </div>
+          {item.stock > 0 && (
+            qte === 0
+              ? <button onClick={() => modifier(item.id, 1)} style={{ ...s.btnOrange, width: "auto", padding: "10px 18px", fontSize: 13, borderRadius: 12, flexShrink: 0 }}>Ajouter</button>
+              : <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff5f0", borderRadius: 12, padding: "6px 12px", border: `1px solid rgba(255,107,53,0.2)`, flexShrink: 0 }}>
+                  <button onClick={() => modifier(item.id, -1)} style={{ background: "none", border: "none", color: theme.orange, cursor: "pointer", fontWeight: 800, fontSize: 20, lineHeight: 1, padding: 0 }}>−</button>
+                  <span style={{ fontWeight: 800, fontSize: 16, minWidth: 20, textAlign: "center", color: "#1a1a2e" }}>{qte}</span>
+                  <button onClick={() => modifier(item.id, 1)} style={{ background: "none", border: "none", color: theme.orange, cursor: "pointer", fontWeight: 800, fontSize: 20, lineHeight: 1, padding: 0 }}>+</button>
+                </div>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+        <div style={{ background: gradients.orange, padding: "16px 20px 60px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <button onClick={() => setVue("liste-restos")} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: "8px 12px", color: "#fff", cursor: "pointer" }}>{Icons.back}</button>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: "#fff" }}>{restoInfo?.nom || "Menu"}</p>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Table {numeroTable}</p>
+            </div>
+            <div style={{ width: 44 }}></div>
+          </div>
         </div>
 
-        {nbArticlesPanier > 0 && (
-          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(15,17,23,0.95)", backdropFilter: "blur(20px)", borderTop: `1px solid ${theme.borderGold}`, padding: 16 }}>
-            <div style={{ maxWidth: 600, margin: "0 auto" }}>
-              <button style={{ ...s.btnGold, display: "flex", justifyContent: "space-between", alignItems: "center" }} onClick={() => setVue("panier")}>
-                <span>{nbArticlesPanier} article{nbArticlesPanier > 1 ? "s" : ""} — Voir le panier</span>
-                <span>{totalPanier} FCFA</span>
+        <div style={{ margin: "-40px 16px 0", background: "#fff", borderRadius: 20, boxShadow: "0 4px 20px rgba(0,0,0,0.08)", overflow: "hidden", position: "relative", zIndex: 10 }}>
+          <div style={{ display: "flex", borderBottom: "1px solid #f0f0f5" }}>
+            {[["plats", Icons.food, "Plats"], ["boissons", Icons.drink, "Boissons"], ["jobs", Icons.jobs, "Emplois"]].map(([id, icon, label]) => (
+              <button key={id} onClick={() => setOngletMenu(id)} style={{ flex: 1, padding: "14px 4px", background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: ongletMenu === id ? 700 : 500, color: ongletMenu === id ? theme.orange : "#9ca3af", borderBottom: ongletMenu === id ? `2px solid ${theme.orange}` : "2px solid transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.2s" }}>
+                {icon} {label}
               </button>
-            </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: "16px 16px 100px" }}>
+          {ongletMenu === "plats" && (<>{plats.length === 0 && <p style={{ textAlign: "center", color: "#9ca3af", marginTop: 40 }}>Aucun plat disponible</p>}{plats.map(renderItem)}</>)}
+          {ongletMenu === "boissons" && (<>{boissons.length === 0 && <p style={{ textAlign: "center", color: "#9ca3af", marginTop: 40 }}>Aucune boisson disponible</p>}{boissons.map(renderItem)}</>)}
+          {ongletMenu === "jobs" && (
+            infoRecrutement?.actif
+              ? <div style={{ background: "#fff", borderRadius: 20, padding: 22, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", borderLeft: `4px solid ${theme.orange}` }}>
+                  <p style={{ fontWeight: 800, fontSize: 18, color: "#1a1a2e", marginBottom: 16 }}>Nous recrutons !</p>
+                  {[["Poste recherché", infoRecrutement.poste], ["Conditions", infoRecrutement.conditions], ["Contact", infoRecrutement.contact]].map(([l, v]) => (
+                    <div key={l} style={{ marginBottom: 14 }}>
+                      <p style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 4px" }}>{l}</p>
+                      <p style={{ fontSize: 14, color: "#374151", margin: 0, fontWeight: l === "Contact" ? 700 : 400, color: l === "Contact" ? theme.orange : "#374151" }}>{v}</p>
+                    </div>
+                  ))}
+                </div>
+              : <p style={{ textAlign: "center", color: "#9ca3af", marginTop: 40 }}>Aucun poste disponible pour le moment</p>
+          )}
+        </div>
+
+        {totalPanier > 0 && (
+          <div style={{ position: "fixed", bottom: 20, left: 16, right: 16, zIndex: 100 }}>
+            <button onClick={() => setVue("paiement")} style={{ ...s.btnOrange, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderRadius: 18, boxShadow: "0 8px 32px rgba(255,107,53,0.4)", fontSize: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>{Icons.cart} Commander</div>
+              <span style={{ fontWeight: 800 }}>{totalPanier.toLocaleString()} FCFA</span>
+            </button>
           </div>
         )}
       </div>
     );
   }
 
-  // ============================================================
-  // VUE : PANIER / CHECKOUT
-  // ============================================================
-  if (vue === "panier") {
-    const lignes = Object.entries(panier).filter(([, q]) => q > 0).map(([id, qte]) => ({ item: menu.find(i => i.id === id), qte }));
-    return (
-      <div style={s.page}>
-        <div style={s.header}>
-          <button onClick={() => setVue("menu")} style={{ background: "none", border: "none", color: theme.textPrimary, cursor: "pointer" }}>{Icons.back}</button>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>Votre panier</div>
-          <div style={{ width: 20 }} />
-        </div>
-        <div style={{ maxWidth: 500, margin: "0 auto", padding: 20 }}>
-          {lignes.map(({ item, qte }) => (
-            <div key={item.id} style={{ ...s.card, display: "flex", gap: 14, alignItems: "center" }}>
-              <ImagePlat url={item.image_url} nom={item.nom} size={54} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{item.nom}</div>
-                <div style={{ color: theme.textMuted, fontSize: 12 }}>{item.prix} FCFA x {qte}</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "4px 6px" }}>
-                <button onClick={() => modifier(item.id, -1)} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, width: 26, height: 26, color: theme.textPrimary, cursor: "pointer" }}>{Icons.minus}</button>
-                <span style={{ fontWeight: 700, minWidth: 16, textAlign: "center" }}>{qte}</span>
-                <button onClick={() => modifier(item.id, 1)} style={{ background: gradients.orange, border: "none", borderRadius: 8, width: 26, height: 26, color: "#fff", cursor: "pointer" }}>{Icons.plus}</button>
-              </div>
-            </div>
-          ))}
-          <div style={{ ...s.cardGold, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 17, fontWeight: 800 }}>
-            <span>Total</span><span style={{ color: theme.gold }}>{totalPanier} FCFA</span>
-          </div>
-          <div style={{ marginTop: 20 }}>
-            <div style={s.label}>Mode de paiement</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={s.btnOrange} onClick={() => passerCommande("especes")}>Payer en espèces à table</button>
-              <button style={s.btnGold} onClick={() => passerCommande("mobile_money")}>Payer par Mobile Money</button>
-            </div>
-          </div>
-        </div>
+  if (vue === "paiement") return (
+    <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+      <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        <button onClick={() => setVue("menu")} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }}>{Icons.back}</button>
+        <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Paiement</span>
       </div>
-    );
-  }
+      <div style={{ padding: 20, maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ background: gradients.orange, borderRadius: 24, padding: 28, textAlign: "center", marginBottom: 24, boxShadow: "0 8px 32px rgba(255,107,53,0.25)" }}>
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, margin: "0 0 8px" }}>Total à régler</p>
+          <p style={{ fontSize: 42, fontWeight: 900, color: "#fff", margin: 0 }}>{totalPanier.toLocaleString()} <span style={{ fontSize: 20, fontWeight: 600 }}>FCFA</span></p>
+        </div>
+        <p style={{ ...s.sectionTitle, color: "#9ca3af" }}>Choisir le mode de paiement</p>
+        {[["Orange Money", "#FF6600", "📱"], ["MTN Mobile Money", "#FFCC00", "📲"], ["Espèces", "#22c55e", "💵"]].map(([label, color, icon]) => (
+          <button key={label} onClick={() => passerCommande(label)} style={{ background: "#fff", border: `1.5px solid #f0f0f5`, borderRadius: 18, padding: "18px 20px", width: "100%", marginBottom: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.04)", textAlign: "left" }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{icon}</div>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e", margin: "0 0 2px" }}>{label}</p>
+              <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>Payer avec {label}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
-  // ============================================================
-  // VUE : CONFIRMATION
-  // ============================================================
-  if (vue === "confirmation") {
+  if (vue === "confirmation") return (
+    <div style={{ minHeight: "100vh", background: "#f8f9ff", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40, textAlign: "center", fontFamily: theme.font }}>
+      <div style={{ width: 90, height: 90, borderRadius: "50%", background: gradients.green, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, boxShadow: "0 8px 32px rgba(0,200,150,0.3)", color: "#fff" }}>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style={{ color: "#1a1a2e", fontSize: 26, fontWeight: 800, margin: "0 0 8px" }}>Commande confirmée !</h2>
+      <p style={{ color: "#9ca3af", marginBottom: 36, fontSize: 15 }}>Votre commande est en cours de préparation</p>
+      <button onClick={() => setVue("accueil")} style={{ ...s.btnOrange, maxWidth: 280 }}>Retour à l'accueil</button>
+    </div>
+  );
+
+  if (vue === "gerant") {
+    const tabs = [
+      { id: "dashboard", icon: Icons.dashboard, label: "Dashboard" },
+      { id: "menu", icon: Icons.food, label: "Menu" },
+      { id: "commandes", icon: Icons.orders, label: "Commandes" },
+      { id: "cuisine", icon: Icons.kitchen, label: "Cuisine", badge: nouvellesCommandes },
+      { id: "recrutement", icon: Icons.recruit, label: "Jobs" },
+      { id: "parametres", icon: Icons.settings, label: "Réglages" },
+      { id: "qrcodes", icon: Icons.qr, label: "QR Codes" },
+    ];
+
     return (
-      <div style={{ ...s.page, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <div style={{ textAlign: "center", maxWidth: 360 }}>
-          <div style={{ width: 76, height: 76, borderRadius: "50%", background: gradients.green, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", boxShadow: "0 8px 32px rgba(0,200,150,0.35)" }}>
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+      <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
+        <audio ref={audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
+
+        {/* HEADER */}
+        <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>
+              {gerant?.nom?.[0]?.toUpperCase()}
+            </div>
+            <div>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{gerant?.nom}</p>
+              <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>Tableau de bord</p>
+            </div>
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Commande envoyée !</h2>
-          <p style={{ color: theme.textSecondary, fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>La cuisine a été notifiée. Votre commande sera bientôt en préparation, restez à votre table.</p>
-          <button style={s.btnGhost} onClick={() => setVue("menu")}>Commander autre chose</button>
+          <button onClick={() => { setGerant(null); setVue("accueil"); }} style={{ ...s.btnDanger, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>{Icons.logout} Quitter</button>
         </div>
-      </div>
-    );
-  }
 
-  // ============================================================
-  // VUE : LOGIN ADMIN
-  // ============================================================
-  if (vue === "login-admin") {
-    return (
-      <div style={s.page}>
-        <div style={{ maxWidth: 420, margin: "0 auto", padding: "40px 24px" }}>
-          <div style={{ ...s.badge(theme.purple), marginBottom: 20 }}>{Icons.shield} <span style={{ marginLeft: 6 }}>Administration</span></div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>Connexion admin</h2>
-          <label style={s.label}>Email</label>
-          <input style={s.input} value={connexionAdmin.email} onChange={e => setConnexionAdmin({ ...connexionAdmin, email: e.target.value })} />
-          <label style={s.label}>Mot de passe</label>
-          <input style={s.input} type="password" value={connexionAdmin.mot_de_passe} onChange={e => setConnexionAdmin({ ...connexionAdmin, mot_de_passe: e.target.value })} />
-          <button style={{ background: gradients.purple, color: "#fff", border: "none", borderRadius: 14, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", width: "100%", fontFamily: theme.font }} disabled={loading} onClick={connecterAdmin}>{loading ? "..." : "Se connecter"}</button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VUE : ADMIN DASHBOARD
-  // ============================================================
-  if (vue === "admin-dashboard") {
-    const enAttente = restosAdmin.filter(r => r.statut === "en_attente");
-    const valides = restosAdmin.filter(r => r.statut === "valide");
-    return (
-      <div style={s.page}>
-        <div style={s.header}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>{Icons.shield}<span style={{ fontWeight: 700 }}>Admin Launge</span></div>
-          <button style={{ background: "none", border: "none", color: theme.textSecondary, cursor: "pointer" }} onClick={() => { setAdmin(null); setVue("accueil"); }}>{Icons.logout}</button>
-        </div>
-        <div style={{ maxWidth: 700, margin: "0 auto", padding: 20 }}>
-          <div style={s.sectionTitle}>En attente de validation ({enAttente.length})</div>
-          {enAttente.map(r => (
-            <div key={r.id} style={s.cardOrange}>
-              <div style={{ fontWeight: 700 }}>{r.nom}</div>
-              <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 12 }}>{r.ville} · {r.email} · {r.telephone}</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button style={s.btnGreen} onClick={() => validerResto(r.id)}>Valider</button>
-                <button style={s.btnDanger} onClick={() => refuserResto(r.id)}>Refuser</button>
-              </div>
-            </div>
-          ))}
-          {enAttente.length === 0 && <div style={{ color: theme.textMuted, fontSize: 13, marginBottom: 20 }}>Aucune demande en attente.</div>}
-
-          <div style={{ ...s.sectionTitle, marginTop: 28 }}>Restaurants actifs ({valides.length})</div>
-          {valides.map(r => (
-            <div key={r.id} style={s.card}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{r.nom}</div>
-                  <div style={{ fontSize: 12, color: theme.textMuted }}>{r.ville} · code {r.code_unique}</div>
-                </div>
-                <button style={s.btnDanger} onClick={() => supprimerResto(r.id)}>Supprimer</button>
-              </div>
-            </div>
+        {/* TABS */}
+        <div style={{ background: "#fff", borderBottom: "1px solid #f0f0f5", display: "flex", overflowX: "auto", scrollbarWidth: "none" }}>
+          {tabs.map(({ id, icon, label, badge }) => (
+            <button key={id} onClick={() => { setOnglet(id); if (id === "cuisine") setNouvellesCommandes(0); }} style={{ flex: "0 0 auto", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 10, fontWeight: onglet === id ? 700 : 500, color: onglet === id ? theme.orange : "#9ca3af", borderBottom: onglet === id ? `2px solid ${theme.orange}` : "2px solid transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, position: "relative", transition: "all 0.2s" }}>
+              {icon} {label}
+              {badge > 0 && <span style={{ position: "absolute", top: 6, right: 6, background: theme.red, color: "#fff", borderRadius: "50%", width: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{badge}</span>}
+            </button>
           ))}
         </div>
-      </div>
-    );
-  }
 
-  // ============================================================
-  // VUE : GÉRANT — DASHBOARD PRINCIPAL
-  // ============================================================
-  if (vue === "gerant" && gerant) {
-    const enCours = commandesCuisine.filter(c => c.statut === "en_cours");
-    const prets = commandesCuisine.filter(c => c.statut === "pret");
-    const ruptures = menu.filter(m => m.stock <= 0);
-    const stockBas = menu.filter(m => m.stock > 0 && m.stock <= (m.seuil_alerte || 3));
-
-    const NavItem = ({ id, icon, label, badge }) => (
-      <button onClick={() => { setOnglet(id); if (id === "commandes") setNouvellesCommandes(0); }} style={{
-        display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer",
-        background: onglet === id ? "rgba(255,107,53,0.12)" : "transparent",
-        color: onglet === id ? theme.orange : theme.textSecondary,
-        fontWeight: onglet === id ? 700 : 500, fontSize: 14, fontFamily: theme.font, width: "100%", textAlign: "left", position: "relative",
-      }}>
-        {icon}<span>{label}</span>
-        {badge > 0 && <span style={{ marginLeft: "auto", background: theme.red, color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "2px 7px" }}>{badge}</span>}
-      </button>
-    );
-
-    return (
-      <div style={{ ...s.page, display: "flex" }}>
-        <audio ref={audioRef} src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" />
-        {/* Sidebar */}
-        <div style={{ width: 240, borderRight: `1px solid ${theme.border}`, padding: 20, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
-          <div style={{ marginBottom: 30 }}><LogoLaunge size={30} /></div>
-          <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 20, paddingLeft: 4 }}>{gerant.nom}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-            <NavItem id="dashboard" icon={Icons.dashboard} label="Tableau de bord" />
-            <NavItem id="menu" icon={Icons.menu} label="Menu" />
-            <NavItem id="commandes" icon={Icons.orders} label="Commandes" badge={nouvellesCommandes} />
-            <NavItem id="qr" icon={Icons.qr} label="QR Codes" />
-            <NavItem id="recrutement" icon={Icons.recruit} label="Recrutement" />
-            <NavItem id="parametres" icon={Icons.settings} label="Paramètres" />
-          </div>
-          <button style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "none", border: "none", color: theme.textMuted, cursor: "pointer", fontSize: 13, fontFamily: theme.font }} onClick={() => { setGerant(null); setVue("accueil"); }}>{Icons.logout} Déconnexion</button>
-        </div>
-
-        {/* Content */}
-        <div style={{ flex: 1, padding: "28px 32px", maxWidth: 1000 }}>
+        <div style={{ padding: 16, maxWidth: 680, margin: "0 auto" }}>
 
           {onglet === "dashboard" && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>Tableau de bord</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 24 }}>
-                <div style={s.cardGold}><div style={s.label}>Chiffre d'affaires (mois)</div><div style={{ fontSize: 24, fontWeight: 800, color: theme.gold }}>{caMois.toLocaleString()} FCFA</div></div>
-                <div style={s.cardOrange}><div style={s.label}>Commandes en cours</div><div style={{ fontSize: 24, fontWeight: 800, color: theme.orange }}>{enCours.length}</div></div>
-                <div style={s.cardGreen}><div style={s.label}>Prêtes à servir</div><div style={{ fontSize: 24, fontWeight: 800, color: theme.green }}>{prets.length}</div></div>
-                <div style={{ ...s.card, border: `1px solid rgba(239,68,68,0.25)` }}><div style={s.label}>Ruptures de stock</div><div style={{ fontSize: 24, fontWeight: 800, color: theme.red }}>{ruptures.length}</div></div>
+            <div>
+              {/* STATS CARDS */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                <div style={{ background: gradients.orange, borderRadius: 20, padding: "18px 16px", boxShadow: "0 4px 20px rgba(255,107,53,0.25)" }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>CA du mois</p>
+                  <p style={{ margin: 0, fontWeight: 900, fontSize: 22, color: "#fff" }}>{caMois.toLocaleString()}<span style={{ fontSize: 12, fontWeight: 500 }}> F</span></p>
+                </div>
+                <div style={{ background: "linear-gradient(135deg, #3B82F6, #6366F1)", borderRadius: 20, padding: "18px 16px", boxShadow: "0 4px 20px rgba(59,130,246,0.25)" }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Commandes</p>
+                  <p style={{ margin: 0, fontWeight: 900, fontSize: 22, color: "#fff" }}>{stats.length}</p>
+                </div>
               </div>
 
-              {(ruptures.length > 0 || stockBas.length > 0) && (
-                <div style={{ ...s.card, border: `1px solid rgba(255,107,53,0.25)`, marginBottom: 24 }}>
-                  <div style={{ ...s.sectionTitle, marginBottom: 10 }}>Alertes stock</div>
-                  {ruptures.map(m => <div key={m.id} style={{ fontSize: 13, padding: "4px 0", color: theme.red }}>● {m.nom} — épuisé</div>)}
-                  {stockBas.map(m => <div key={m.id} style={{ fontSize: 13, padding: "4px 0", color: theme.orange }}>● {m.nom} — {m.stock} restant(s)</div>)}
+              {/* STOCK */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                <p style={s.sectionTitle}>Alertes stock</p>
+                {menu.filter(i => i.stock <= i.seuil_alerte).length === 0
+                  ? <div style={{ display: "flex", alignItems: "center", gap: 8, color: theme.green }}><span style={s.badge(theme.green)}>Tout est en stock</span></div>
+                  : menu.filter(i => i.stock <= i.seuil_alerte).map(i => (
+                    <div key={i.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "10px 14px", background: i.stock === 0 ? "rgba(239,68,68,0.05)" : "rgba(249,115,22,0.05)", borderRadius: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 22 }}>{i.emoji}</span>
+                        <span style={{ fontWeight: 600, color: "#374151", fontSize: 14 }}>{i.nom}</span>
+                      </div>
+                      <span style={s.badge(i.stock === 0 ? theme.red : theme.orange)}>{i.stock === 0 ? "Épuisé" : `${i.stock} restants`}</span>
+                    </div>
+                  ))}
+              </div>
+
+              {/* TOP VENTES */}
+              {topItems.length > 0 && (
+                <div style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                    <p style={{ ...s.sectionTitle, margin: 0 }}>Top ventes du mois</p>
+                    <span style={{ color: theme.orange }}>{Icons.trending}</span>
+                  </div>
+                  {topItems.slice(0, 5).map(([nom, qte], idx) => (
+                    <div key={nom} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: idx === 0 ? "#FFF5CC" : idx === 1 ? "#F0F0F0" : "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: idx === 0 ? "#CC9900" : idx === 1 ? "#888" : theme.orange, flexShrink: 0 }}>
+                        {idx + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{nom}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: theme.orange }}>{qte}×</span>
+                        </div>
+                        <div style={{ height: 4, background: "#f0f0f5", borderRadius: 2, overflow: "hidden" }}>
+                          <div style={{ height: "100%", background: gradients.orange, borderRadius: 2, width: `${Math.round((qte / topItems[0][1]) * 100)}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr)", gap: 14, marginBottom: 24 }}>
-                <div style={s.card}>
-                  <div style={s.sectionTitle}>Évolution du chiffre d'affaires</div>
-                  {dataCourbeCA.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <AreaChart data={dataCourbeCA} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="caGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={theme.orange} stopOpacity={0.5} />
-                            <stop offset="100%" stopColor={theme.orange} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke={theme.border} vertical={false} />
-                        <XAxis dataKey="jour" stroke={theme.textMuted} fontSize={11} tickLine={false} axisLine={false} />
-                        <YAxis stroke={theme.textMuted} fontSize={11} tickLine={false} axisLine={false} width={0} />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Area type="monotone" dataKey="ca" name="CA (FCFA)" stroke={theme.orange} strokeWidth={3} fill="url(#caGradient)" dot={{ fill: theme.gold, r: 4 }} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : <div style={{ color: theme.textMuted, fontSize: 13, padding: "40px 0", textAlign: "center" }}>Pas encore assez de données.</div>}
-                </div>
-
-                <div style={s.card}>
-                  <div style={s.sectionTitle}>Plats vs Boissons</div>
-                  {dataRepartition.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <PieChart>
-                        <Pie data={dataRepartition} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4}>
-                          {dataRepartition.map((d, i) => <Cell key={i} fill={d.color} stroke="none" />)}
-                        </Pie>
-                        <Tooltip content={<ChartTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : <div style={{ color: theme.textMuted, fontSize: 13, padding: "40px 0", textAlign: "center" }}>Pas encore assez de données.</div>}
-                  {dataRepartition.length > 0 && (
-                    <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 4 }}>
-                      {dataRepartition.map(d => (
-                        <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.textSecondary }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />{d.name}
+              {/* INVENTAIRE JOURNALIER */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                <p style={s.sectionTitle}>Inventaire journalier</p>
+                {journees.length === 0 && <p style={{ color: "#9ca3af", fontSize: 14 }}>Aucune donnée pour le moment</p>}
+                {journees.map(([dateKey, jour]) => {
+                  const platsTries = Object.entries(jour.plats).sort((a, b) => b[1] - a[1]);
+                  const boissonsTries = Object.entries(jour.boissons).sort((a, b) => b[1] - a[1]);
+                  return (
+                    <div key={dateKey} style={{ borderBottom: "1px solid #f0f0f5", paddingBottom: 16, marginBottom: 16 }}>
+                      <p style={{ fontWeight: 700, fontSize: 14, color: "#1a1a2e", marginBottom: 10 }}>{jour.label}</p>
+                      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                        <div style={{ flex: 1, background: "#fff5f0", borderRadius: 12, padding: "10px 14px" }}>
+                          <p style={{ margin: "0 0 2px", fontSize: 10, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>CA</p>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: theme.orange }}>{jour.total.toLocaleString()} F</p>
                         </div>
-                      ))}
+                        <div style={{ flex: 1, background: "#f0f9ff", borderRadius: 12, padding: "10px 14px" }}>
+                          <p style={{ margin: "0 0 2px", fontSize: 10, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Commandes</p>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: "#3B82F6" }}>{jour.commandes}</p>
+                        </div>
+                      </div>
+                      {platsTries.length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <p style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Plats</p>
+                          {platsTries.map(([nom, qte]) => (
+                            <div key={nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4, color: "#374151" }}>
+                              <span>{nom}</span><span style={{ fontWeight: 700, color: theme.orange }}>{qte}×</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {boissonsTries.length > 0 && (
+                        <div>
+                          <p style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Boissons</p>
+                          {boissonsTries.map(([nom, qte]) => (
+                            <div key={nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4, color: "#374151" }}>
+                              <span>{nom}</span><span style={{ fontWeight: 700, color: "#3B82F6" }}>{qte}×</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-
-              <div style={s.sectionTitle}>Top des ventes</div>
-              <div style={s.card}>
-                {dataTop5.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={Math.max(180, dataTop5.length * 44)}>
-                    <BarChart data={dataTop5} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                      <CartesianGrid stroke={theme.border} horizontal={false} />
-                      <XAxis type="number" stroke={theme.textMuted} fontSize={11} tickLine={false} axisLine={false} />
-                      <YAxis type="category" dataKey="nom" stroke={theme.textSecondary} fontSize={12} tickLine={false} axisLine={false} width={100} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                      <Bar dataKey="qte" name="Vendus" radius={[0, 8, 8, 0]} barSize={22} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : <div style={{ color: theme.textMuted, fontSize: 13 }}>Pas encore de données.</div>}
-              </div>
-
-              <div style={{ ...s.sectionTitle, marginTop: 24 }}>Historique par journée</div>
-              {journees.slice(0, 5).map(([key, j]) => (
-                <div key={key} style={s.card}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, marginBottom: 4, textTransform: "capitalize" }}>
-                    <span>{j.label}</span><span style={{ color: theme.gold }}>{j.total.toLocaleString()} FCFA</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: theme.textMuted }}>{j.commandes} commande{j.commandes > 1 ? "s" : ""}</div>
-                </div>
-              ))}
-            </>
+            </div>
           )}
 
           {onglet === "menu" && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>Gestion du menu</h2>
-              <div style={{ ...s.card, marginBottom: 24 }}>
-                <div style={{ ...s.sectionTitle, marginBottom: 14 }}>{platEnEdition ? "Modifier l'article" : "Ajouter un article"}</div>
-                {(() => {
-                  const cible = platEnEdition || nouveauPlat;
-                  const setCible = platEnEdition ? setPlatEnEdition : setNouveauPlat;
-                  return (
-                    <>
-                      <div style={{ display: "flex", gap: 14, marginBottom: 14, alignItems: "center" }}>
-                        <ImagePlat url={cible.image_url} nom={cible.nom} size={64} />
-                        <label style={{ ...s.btnGhost, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, width: "auto", padding: "10px 16px", cursor: uploadingImage ? "wait" : "pointer" }}>
-                          {Icons.image} {uploadingImage ? "Envoi..." : "Choisir une photo"}
-                          <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingImage} onChange={async e => {
-                            const file = e.target.files[0]; if (!file) return;
-                            const url = await uploadImage(file);
-                            if (url) setCible({ ...cible, image_url: url });
-                          }} />
-                        </label>
-                      </div>
-                      <label style={s.label}>Nom du plat</label>
-                      <input style={s.input} value={cible.nom} onChange={e => setCible({ ...cible, nom: e.target.value })} />
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <div style={{ flex: 1 }}><label style={s.label}>Prix (FCFA)</label><input style={s.input} type="number" value={cible.prix} onChange={e => setCible({ ...cible, prix: e.target.value })} /></div>
-                        <div style={{ flex: 1 }}>
-                          <label style={s.label}>Catégorie</label>
-                          <select style={s.input} value={cible.categorie} onChange={e => setCible({ ...cible, categorie: e.target.value })}>
-                            <option>Plats</option><option>Entrées</option><option>Desserts</option><option>Boissons</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <div style={{ flex: 1 }}><label style={s.label}>Stock disponible</label><input style={s.input} type="number" value={cible.stock} onChange={e => setCible({ ...cible, stock: e.target.value })} /></div>
-                        <div style={{ flex: 1 }}><label style={s.label}>Seuil d'alerte</label><input style={s.input} type="number" value={cible.seuil_alerte} onChange={e => setCible({ ...cible, seuil_alerte: e.target.value })} /></div>
-                      </div>
-                      <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                        <button style={s.btnOrange} onClick={platEnEdition ? modifierPlat : ajouterPlat}>{platEnEdition ? "Enregistrer" : "Ajouter au menu"}</button>
-                        {platEnEdition && <button style={s.btnGhost} onClick={() => setPlatEnEdition(null)}>Annuler</button>}
-                      </div>
-                    </>
-                  );
-                })()}
+            <div>
+              <div style={{ background: "#fff", borderRadius: 20, padding: 22, marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                <p style={s.sectionTitle}>Ajouter un article</p>
+                {[{ k: "nom", l: "Nom du plat", p: "Ex: Ndolé spécial", t: "text" }, { k: "prix", l: "Prix (FCFA)", p: "Ex: 2500", t: "number" }].map(f => (
+                  <div key={f.k}>
+                    <label style={{ ...s.label, color: "#6b7280" }}>{f.l}</label>
+                    <input placeholder={f.p} type={f.t} value={nouveauPlat[f.k]} onChange={e => setNouveauPlat({ ...nouveauPlat, [f.k]: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  </div>
+                ))}
+                <label style={{ ...s.label, color: "#6b7280" }}>Catégorie</label>
+                <select value={nouveauPlat.categorie} onChange={e => setNouveauPlat({ ...nouveauPlat, categorie: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }}>
+                  {["Plats", "Boissons"].map(c => <option key={c}>{c}</option>)}
+                </select>
+                <label style={{ ...s.label, color: "#6b7280" }}>Emoji</label>
+                <input placeholder="🍽️" value={nouveauPlat.emoji} onChange={e => setNouveauPlat({ ...nouveauPlat, emoji: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                {[{ k: "stock", l: "Stock initial", p: "Ex: 20" }, { k: "seuil_alerte", l: "Seuil d'alerte", p: "Ex: 5" }].map(f => (
+                  <div key={f.k}>
+                    <label style={{ ...s.label, color: "#6b7280" }}>{f.l}</label>
+                    <input placeholder={f.p} type="number" value={nouveauPlat[f.k]} onChange={e => setNouveauPlat({ ...nouveauPlat, [f.k]: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  </div>
+                ))}
+                <label style={{ ...s.label, color: "#6b7280" }}>Photo du plat</label>
+                <div style={{ border: "2px dashed #e5e7eb", borderRadius: 14, padding: "20px", textAlign: "center", marginBottom: 14, background: "#f9fafb", cursor: "pointer" }} onClick={() => document.getElementById('upload-new').click()}>
+                  {nouveauPlat.image_url ? <img src={nouveauPlat.image_url} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover" }} /> : <div style={{ color: "#9ca3af" }}>{Icons.image}<p style={{ margin: "8px 0 0", fontSize: 13 }}>Ajouter une photo</p></div>}
+                  <input id="upload-new" type="file" accept="image/*" style={{ display: "none" }} onChange={async e => { const url = await uploadImage(e.target.files[0]); if (url) setNouveauPlat({ ...nouveauPlat, image_url: url }); }} />
+                </div>
+                <button onClick={ajouterPlat} style={s.btnOrange} disabled={uploadingImage}>{uploadingImage ? "Upload..." : "Ajouter au menu"}</button>
               </div>
 
-              <div style={s.sectionTitle}>Articles du menu ({menu.length})</div>
-              {menu.map(item => (
-                <div key={item.id} style={{ ...s.card, display: "flex", gap: 14, alignItems: "center" }}>
-                  <ImagePlat url={item.image_url} nom={item.nom} size={54} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{item.nom}</div>
-                    <div style={{ fontSize: 12, color: theme.textMuted }}>{item.categorie} · {item.prix} FCFA · Stock: {item.stock}</div>
+              {platEnEdition && (
+                <div style={{ background: "#fff", borderRadius: 20, padding: 22, marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", borderLeft: `4px solid ${theme.orange}` }}>
+                  <p style={{ ...s.sectionTitle, color: theme.orange }}>Modifier l'article</p>
+                  <input value={platEnEdition.nom} onChange={e => setPlatEnEdition({ ...platEnEdition, nom: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  <input type="number" value={platEnEdition.prix} onChange={e => setPlatEnEdition({ ...platEnEdition, prix: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  <select value={platEnEdition.categorie} onChange={e => setPlatEnEdition({ ...platEnEdition, categorie: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }}>
+                    {["Plats", "Boissons"].map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <input value={platEnEdition.emoji} onChange={e => setPlatEnEdition({ ...platEnEdition, emoji: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  <input type="number" value={platEnEdition.stock} onChange={e => setPlatEnEdition({ ...platEnEdition, stock: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  <input type="number" value={platEnEdition.seuil_alerte} onChange={e => setPlatEnEdition({ ...platEnEdition, seuil_alerte: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                  <div style={{ border: "2px dashed #e5e7eb", borderRadius: 14, padding: "16px", textAlign: "center", marginBottom: 14, background: "#f9fafb", cursor: "pointer" }} onClick={() => document.getElementById('upload-edit').click()}>
+                    {platEnEdition.image_url ? <img src={platEnEdition.image_url} style={{ width: 70, height: 70, borderRadius: 10, objectFit: "cover" }} /> : <div style={{ color: "#9ca3af" }}>{Icons.image}<p style={{ margin: "6px 0 0", fontSize: 12 }}>Changer la photo</p></div>}
+                    <input id="upload-edit" type="file" accept="image/*" style={{ display: "none" }} onChange={async e => { const url = await uploadImage(e.target.files[0]); if (url) setPlatEnEdition({ ...platEnEdition, image_url: url }); }} />
                   </div>
-                  <button style={s.btnEdit} onClick={() => setPlatEnEdition(item)}>Modifier</button>
-                  <button style={s.btnDanger} onClick={() => supprimerPlat(item.id)}>Suppr.</button>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={modifierPlat} style={{ ...s.btnOrange, flex: 1 }}>Enregistrer</button>
+                    <button onClick={() => setPlatEnEdition(null)} style={{ ...s.btnGhost, flex: 1, borderColor: "#e5e7eb", color: "#6b7280" }}>Annuler</button>
+                  </div>
+                </div>
+              )}
+
+              <p style={{ ...s.sectionTitle, marginTop: 8 }}>Articles ({menu.length})</p>
+              {menu.map(item => (
+                <div key={item.id} style={{ background: "#fff", borderRadius: 18, padding: "14px 16px", marginBottom: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <ImagePlat url={item.image_url} nom={item.nom} size={52} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, color: "#1a1a2e", margin: "0 0 2px", fontSize: 14 }}>{item.nom}</p>
+                    <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{item.prix.toLocaleString()} FCFA · {item.stock} en stock · {item.categorie}</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setPlatEnEdition({ ...item })} style={s.btnEdit}>Modifier</button>
+                    <button onClick={() => supprimerPlat(item.id)} style={s.btnDanger}>Retirer</button>
+                  </div>
                 </div>
               ))}
-            </>
+            </div>
           )}
 
           {onglet === "commandes" && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>Commandes en direct</h2>
-              <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-                {["en_cours", "pret"].map(statut => (
-                  <div key={statut} style={{ flex: 1, minWidth: 280 }}>
-                    <div style={{ ...s.sectionTitle, color: STATUT_COLOR[statut] }}>{STATUT_LABEL[statut]} ({commandesCuisine.filter(c => c.statut === statut).length})</div>
-                    {commandesCuisine.filter(c => c.statut === statut).map(cmd => (
-                      <div key={cmd.id} style={{ ...s.card, borderLeft: `3px solid ${STATUT_COLOR[statut]}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                          <span style={s.chip(theme.gold)}>Table {cmd.numero_table}</span>
-                          <span style={{ fontSize: 11, color: theme.textMuted }}>{new Date(cmd.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
-                        </div>
-                        {(cmd.items || []).map((it, i) => <div key={i} style={{ fontSize: 13, display: "flex", justifyContent: "space-between" }}><span>{it.nom}</span><span>x{it.qte}</span></div>)}
-                        <div style={{ fontWeight: 700, color: theme.gold, marginTop: 8, textAlign: "right" }}>{cmd.total} FCFA</div>
-                        <button style={{ ...s.btnGreen, width: "100%", marginTop: 10 }} onClick={() => changerStatut(cmd.id, STATUT_SUIVANT[statut])}>
-                          {statut === "en_cours" ? "Marquer prêt" : "Marquer servi"}
-                        </button>
+            <div>
+              <p style={s.sectionTitle}>Commandes ({commandes.length})</p>
+              {commandes.length === 0 && <div style={{ background: "#fff", borderRadius: 20, padding: 40, textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}><p style={{ color: "#9ca3af" }}>Aucune commande</p></div>}
+              {commandes.map((c, i) => (
+                <div key={i} style={{ background: "#fff", borderRadius: 18, padding: 18, marginBottom: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.05)", borderLeft: `4px solid ${STATUT_COLOR[c.statut] || theme.orange}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Table {c.numero_table}</span>
+                      <span style={s.badge(STATUT_COLOR[c.statut] || theme.orange)}>{STATUT_LABEL[c.statut] || c.statut}</span>
+                    </div>
+                    <span style={{ color: "#9ca3af", fontSize: 12 }}>{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                  <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 10px" }}>{c.mode_paiement}</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #f0f0f5", paddingTop: 10 }}>
+                    <span style={{ color: "#9ca3af", fontSize: 13 }}>Total</span>
+                    <span style={{ fontWeight: 800, color: theme.orange }}>{c.total.toLocaleString()} FCFA</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {onglet === "cuisine" && (
+            <div>
+              {commandesCuisine.length === 0 && (
+                <div style={{ background: "#fff", borderRadius: 20, padding: 60, textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                  <div style={{ width: 70, height: 70, borderRadius: "50%", background: "rgba(0,200,150,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: theme.green }}>{Icons.check}</div>
+                  <p style={{ color: "#9ca3af" }}>Aucune commande en attente</p>
+                </div>
+              )}
+              {commandesCuisine.map(c => (
+                <div key={c.id} style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", borderLeft: `4px solid ${STATUT_COLOR[c.statut] || theme.orange}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontWeight: 800, fontSize: 17, color: "#1a1a2e" }}>Table {c.numero_table}</span>
+                      <span style={s.badge(STATUT_COLOR[c.statut] || theme.orange)}>{STATUT_LABEL[c.statut]}</span>
+                    </div>
+                    <span style={{ color: "#9ca3af", fontSize: 12 }}>{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                  <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid #f0f0f5" }}>
+                    {(c.items || []).map((item, idx) => (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 6, color: "#374151" }}>
+                        <span>{item.nom}</span>
+                        <span style={{ fontWeight: 700, color: theme.orange }}>×{item.qte}</span>
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {onglet === "qr" && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>QR codes des tables</h2>
-              <div style={{ ...s.card, display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-                <label style={s.label}>Nombre de tables</label>
-                <input style={{ ...s.input, width: 80, marginBottom: 0 }} type="number" min={1} value={nbTables} onChange={e => setNbTables(+e.target.value)} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 16 }}>
-                {Array.from({ length: nbTables }, (_, i) => i + 1).map(t => (
-                  <div key={t} style={{ ...s.card, textAlign: "center" }}>
-                    <div style={{ background: "#fff", borderRadius: 12, padding: 10, display: "inline-block", marginBottom: 10 }}>
-                      <QRCode value={lienQR(t)} size={110} />
-                    </div>
-                    <div style={{ fontWeight: 700 }}>Table {t}</div>
-                  </div>
-                ))}
-              </div>
-            </>
+                  {STATUT_SUIVANT[c.statut] && (
+                    <button onClick={() => changerStatut(c.id, STATUT_SUIVANT[c.statut])} style={{ ...s.btnGreen, width: "100%", padding: "12px" }}>
+                      {c.statut === "en_cours" ? "Marquer comme prêt" : "Marquer comme servi"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {onglet === "recrutement" && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>Recrutement</h2>
-              <div style={s.card}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <span style={{ fontWeight: 700 }}>Annonce active</span>
-                  <button onClick={() => setRecrutement({ ...recrutement, actif: !recrutement.actif })} style={{
-                    width: 46, height: 26, borderRadius: 20, border: "none", cursor: "pointer",
-                    background: recrutement.actif ? gradients.green : "rgba(255,255,255,0.1)", position: "relative", transition: "background 0.2s",
-                  }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: recrutement.actif ? 23 : 3, transition: "left 0.2s" }} />
-                  </button>
-                </div>
-                <label style={s.label}>Poste recherché</label>
-                <input style={s.input} value={recrutement.poste} onChange={e => setRecrutement({ ...recrutement, poste: e.target.value })} placeholder="Ex: Serveur, Cuisinier..." />
-                <label style={s.label}>Conditions</label>
-                <textarea style={{ ...s.input, minHeight: 90, resize: "vertical" }} value={recrutement.conditions} onChange={e => setRecrutement({ ...recrutement, conditions: e.target.value })} placeholder="Expérience, horaires, salaire..." />
-                <label style={s.label}>Contact</label>
-                <input style={s.input} value={recrutement.contact} onChange={e => setRecrutement({ ...recrutement, contact: e.target.value })} placeholder="Téléphone ou email" />
-                <button style={s.btnGold} onClick={sauvegarderRecrutement}>Enregistrer</button>
+            <div style={{ background: "#fff", borderRadius: 20, padding: 22, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+              <p style={s.sectionTitle}>Gestion du recrutement</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#f9fafb", borderRadius: 14, marginBottom: 20, border: "1px solid #e5e7eb" }}>
+                <span style={{ fontSize: 14, color: "#374151", fontWeight: 500 }}>Recrutement actif</span>
+                <button onClick={() => setRecrutement({ ...recrutement, actif: !recrutement.actif })} style={{ background: recrutement.actif ? theme.green : "#e5e7eb", border: "none", borderRadius: 20, width: 52, height: 28, cursor: "pointer", position: "relative", transition: "background 0.3s" }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: recrutement.actif ? 27 : 3, transition: "left 0.3s", boxShadow: "0 2px 4px rgba(0,0,0,0.15)" }}></div>
+                </button>
               </div>
-            </>
+              {recrutement.actif && (
+                <>
+                  {[{ k: "poste", l: "Poste recherché", p: "Ex: Serveur, Cuisinier...", t: "text" }, { k: "contact", l: "Contact", p: "Téléphone ou email", t: "text" }].map(f => (
+                    <div key={f.k}>
+                      <label style={{ ...s.label, color: "#6b7280" }}>{f.l}</label>
+                      <input placeholder={f.p} type={f.t} value={recrutement[f.k]} onChange={e => setRecrutement({ ...recrutement, [f.k]: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                    </div>
+                  ))}
+                  <label style={{ ...s.label, color: "#6b7280" }}>Conditions</label>
+                  <textarea placeholder="Expérience, horaires, salaire..." value={recrutement.conditions} onChange={e => setRecrutement({ ...recrutement, conditions: e.target.value })} style={{ ...s.input, height: 90, resize: "none", background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+                </>
+              )}
+              <button onClick={sauvegarderRecrutement} style={s.btnOrange}>Sauvegarder</button>
+            </div>
           )}
 
           {onglet === "parametres" && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>Paramètres</h2>
-              <div style={s.card}>
-                <div style={{ ...s.sectionTitle, marginBottom: 14 }}>Code cuisine</div>
-                <p style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 14 }}>Code actuel : <strong style={{ color: theme.gold }}>{codeCuisine || "non défini"}</strong></p>
-                <label style={s.label}>Nouveau code cuisine</label>
-                <input style={s.input} value={nouveauCodeCuisine} onChange={e => setNouveauCodeCuisine(e.target.value)} placeholder="Min. 4 caractères" />
-                <button style={s.btnOrange} onClick={sauvegarderCodeCuisine}>Mettre à jour</button>
+            <div style={{ background: "#fff", borderRadius: 20, padding: 22, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+              <p style={s.sectionTitle}>Code d'accès cuisine</p>
+              <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 20, lineHeight: 1.7 }}>Ce code permet à votre cuisinier d'accéder uniquement à la vue cuisine, sans voir vos données financières.</p>
+              {codeCuisine && (
+                <div style={{ background: "#fff5f0", borderRadius: 14, padding: "16px 20px", marginBottom: 16, border: "1px solid rgba(255,107,53,0.2)" }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 11, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Code actuel</p>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 24, letterSpacing: 8, color: theme.orange }}>{codeCuisine}</p>
+                </div>
+              )}
+              <div style={{ background: "#f9fafb", borderRadius: 14, padding: "14px 18px", marginBottom: 16, border: "1px solid #e5e7eb" }}>
+                <p style={{ margin: "0 0 4px", fontSize: 11, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Code restaurant</p>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 16, letterSpacing: 2, color: "#1a1a2e" }}>{gerant?.code_unique}</p>
               </div>
-              <div style={{ ...s.card, marginTop: 16 }}>
-                <div style={s.sectionTitle}>Code restaurant</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: theme.gold, letterSpacing: "2px" }}>{gerant.code_unique}</div>
+              <label style={{ ...s.label, color: "#6b7280" }}>Nouveau code cuisine</label>
+              <input placeholder="Min. 4 caractères" value={nouveauCodeCuisine} onChange={e => setNouveauCodeCuisine(e.target.value)} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+              <button onClick={sauvegarderCodeCuisine} style={s.btnOrange}>Sauvegarder</button>
+            </div>
+          )}
+
+          {onglet === "qrcodes" && (
+            <div>
+              <div style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                <p style={s.sectionTitle}>Nombre de tables</p>
+                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                  <button onClick={() => setNbTables(n => Math.max(1, n - 1))} style={{ width: 44, height: 44, borderRadius: 12, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#374151", cursor: "pointer", fontWeight: 700, fontSize: 22 }}>−</button>
+                  <span style={{ fontWeight: 800, fontSize: 30, minWidth: 50, textAlign: "center", color: "#1a1a2e" }}>{nbTables}</span>
+                  <button onClick={() => setNbTables(n => n + 1)} style={{ width: 44, height: 44, borderRadius: 12, background: gradients.orange, border: "none", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 22, boxShadow: "0 4px 16px rgba(255,107,53,0.3)" }}>+</button>
+                </div>
               </div>
-            </>
+              {Array.from({ length: nbTables }, (_, i) => i + 1).map(table => (
+                <div key={table} style={{ background: "#fff", borderRadius: 20, padding: 20, marginBottom: 12, textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: "#1a1a2e", marginBottom: 16 }}>Table {table}</p>
+                  <div style={{ background: "#fff", padding: 16, borderRadius: 16, display: "inline-block", marginBottom: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.08)", border: "1px solid #f0f0f5" }}>
+                    <QRCode value={lienQR(table)} size={150} bgColor="#fff" fgColor="#1a1a2e" />
+                  </div>
+                  <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 14, wordBreak: "break-all", padding: "0 16px" }}>{lienQR(table)}</p>
+                  <button onClick={() => window.print()} style={{ ...s.btnGhost, maxWidth: 200, margin: "0 auto", borderColor: "#e5e7eb", color: "#6b7280" }}>Imprimer</button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
