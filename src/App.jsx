@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "./supabaseClient";
 
-const API = "https://launge-backend-production.up.railway.app";
+const API = "https://launge-backend.onrender.com";
 
 const theme = {
   bg: "#0F1117",
