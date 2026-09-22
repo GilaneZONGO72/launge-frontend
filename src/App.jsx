@@ -4,6 +4,10 @@ import { supabase } from "./supabaseClient";
 
 const API = "https://launge-backend.onrender.com";
 
+// 👉 Remplace cette adresse par ton image de fond une fois que tu me l'envoies.
+// Format conseillé : une photo de plat/restaurant en haute qualité, format paysage.
+const HERO_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop";
+
 const theme = {
   bg: "#0F1117",
   bgCard: "rgba(255,255,255,0.04)",
@@ -18,7 +22,7 @@ const theme = {
   textPrimary: "#F8F9FA",
   textSecondary: "rgba(255,255,255,0.5)",
   textMuted: "rgba(255,255,255,0.25)",
-  font: "'Inter', 'Segoe UI', -apple-system, sans-serif",
+  font: "'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif",
 };
 
 const gradients = {
@@ -217,7 +221,7 @@ const Icons = {
   trending: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
 };
 
-const LogoLaunge = ({ size = 36 }) => (
+const LogoLaunge = ({ size = 36, light = false }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
     <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
       <circle cx="30" cy="30" r="28" fill="url(#lg)" opacity="0.15"/>
@@ -235,7 +239,7 @@ const LogoLaunge = ({ size = 36 }) => (
     </svg>
     <div>
       <div style={{ fontWeight: 800, fontSize: size * 0.5, background: "linear-gradient(135deg, #FF6B35, #FFD700)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", letterSpacing: "1px", lineHeight: 1 }}>LAUNGE</div>
-      <div style={{ fontSize: size * 0.22, color: theme.textMuted, letterSpacing: "2px", textTransform: "uppercase" }}>Smart Dining</div>
+      <div style={{ fontSize: size * 0.22, color: light ? "rgba(255,255,255,0.55)" : theme.textMuted, letterSpacing: "2px", textTransform: "uppercase" }}>Smart Dining</div>
     </div>
   </div>
 );
@@ -279,7 +283,18 @@ export default function App() {
   const [commandesCuisine, setCommandesCuisine] = useState([]);
   const [nouvellesCommandes, setNouvellesCommandes] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [menuMobileOuvert, setMenuMobileOuvert] = useState(false);
   const audioRef = useRef(null);
+
+  // Charge la police Plus Jakarta Sans (rendu bold/arrondi, vivant, proche des grandes apps de livraison)
+  useEffect(() => {
+    if (document.getElementById("launge-font")) return;
+    const link = document.createElement("link");
+    link.id = "launge-font";
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
+    document.head.appendChild(link);
+  }, []);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -590,32 +605,99 @@ export default function App() {
 
   if (vue === "accueil") return (
     <div style={{ minHeight: "100vh", fontFamily: theme.font, background: "#fff", overflow: "hidden" }}>
-      {/* HERO */}
-      <div style={{ background: "linear-gradient(135deg, #FF6B35 0%, #FFD700 50%, #FF6B35 100%)", backgroundSize: "200% 200%", padding: "60px 24px 80px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.1)" }}></div>
-        <div style={{ position: "absolute", bottom: -60, left: -30, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }}></div>
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)", borderRadius: 100, padding: "8px 20px", marginBottom: 24 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: "0 0 8px #fff" }}></div>
-            <span style={{ color: "#fff", fontSize: 12, fontWeight: 600, letterSpacing: "1px" }}>SMART DINING · CAMEROUN</span>
+      {/* HERO avec image de fond + nav style app de livraison */}
+      <div style={{
+        position: "relative",
+        backgroundImage: `linear-gradient(180deg, rgba(10,10,15,0.35) 0%, rgba(10,10,15,0.55) 55%, rgba(10,10,15,0.92) 100%), url(${HERO_IMAGE})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        padding: "0 0 40px",
+      }}>
+        {/* NAV */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", position: "relative", zIndex: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <button onClick={() => setMenuMobileOuvert(true)} style={{ background: "rgba(255,255,255,0.14)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 12, width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", cursor: "pointer" }}>
+              {Icons.menu}
+            </button>
+            <LogoLaunge size={30} light />
           </div>
-          <h1 style={{ fontSize: 52, fontWeight: 900, color: "#fff", margin: "0 0 12px", letterSpacing: "-2px", textShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>LAUNGE</h1>
-          <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 16, margin: "0 0 40px", fontWeight: 400 }}>La révolution digitale des restaurants camerounais</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320, margin: "0 auto" }}>
-            <button onClick={() => setVue("login-gerant")} style={{ background: "#fff", color: theme.orange, border: "none", borderRadius: 16, padding: "16px 24px", fontWeight: 800, fontSize: 16, cursor: "pointer", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {Icons.store} Espace Gérant
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={() => setVue("login-cuisine")} style={{ background: "rgba(255,255,255,0.14)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "50%", width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", cursor: "pointer" }}>
+              {Icons.user}
             </button>
-            <button onClick={() => setVue("login-cuisine")} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "2px solid rgba(255,255,255,0.4)", borderRadius: 16, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {Icons.chef} Espace Cuisine
+            <button onClick={() => setVue("login-gerant")} style={{ background: "#fff", color: "#0F1117", border: "none", borderRadius: 100, padding: "11px 20px", fontWeight: 800, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}>
+              Espace Gérant
             </button>
-            <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "2px solid rgba(255,255,255,0.3)", borderRadius: 16, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {Icons.user} Je suis un client
+          </div>
+        </div>
+
+        {menuMobileOuvert && (
+          <div onClick={() => setMenuMobileOuvert(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex" }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#0F1117", width: "78%", maxWidth: 300, height: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ marginBottom: 24 }}><LogoLaunge size={30} light /></div>
+              {[
+                { label: "Accueil", action: () => setVue("accueil") },
+                { label: "Trouver un restaurant", action: () => { chargerRestos(); setVue("liste-restos"); } },
+                { label: "Espace Gérant", action: () => setVue("login-gerant") },
+                { label: "Espace Cuisine", action: () => setVue("login-cuisine") },
+              ].map(item => (
+                <button key={item.label} onClick={() => { item.action(); setMenuMobileOuvert(false); }} style={{ background: "none", border: "none", color: "#fff", textAlign: "left", padding: "14px 4px", fontSize: 16, fontWeight: 600, cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CONTENU HERO */}
+        <div style={{ position: "relative", zIndex: 2, padding: "36px 20px 0", textAlign: "left" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.14)", backdropFilter: "blur(10px)", borderRadius: 100, padding: "7px 16px", marginBottom: 20, border: "1px solid rgba(255,255,255,0.18)" }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: theme.gold }}></div>
+            <span style={{ color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "0.5px" }}>SMART DINING · CAMEROUN</span>
+          </div>
+          <h1 style={{ fontSize: 42, fontWeight: 800, color: "#fff", margin: "0 0 10px", letterSpacing: "-1px", lineHeight: 1.05 }}>
+            Vos restaurants favoris,<br/>commandés depuis la table
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 15, margin: "0 0 28px", fontWeight: 500, maxWidth: 420 }}>
+            Scannez, commandez, dégustez. La révolution digitale des restaurants camerounais.
+          </p>
+
+          {/* Barre type "recherche" Uber Eats */}
+          <div style={{ background: "#fff", borderRadius: 20, padding: 8, boxShadow: "0 12px 40px rgba(0,0,0,0.25)", maxWidth: 440 }}>
+            <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={{ width: "100%", background: "#f9fafb", border: "1px solid #eee", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 8, color: "#6b7280", fontSize: 14, fontWeight: 500, fontFamily: theme.font }}>
+              {Icons.search} Chercher un restaurant, une ville…
+            </button>
+            <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={{ width: "100%", background: "#0F1117", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: theme.font }}>
+              Trouver un restaurant
             </button>
           </div>
         </div>
       </div>
+
+      {/* ACCÈS RAPIDES */}
+      <div style={{ padding: "28px 20px 8px" }}>
+        <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+          <button onClick={() => setVue("login-gerant")} style={{ flex: "0 0 auto", background: "#fff5f0", border: "1px solid rgba(255,107,53,0.15)", borderRadius: 18, padding: "16px 18px", textAlign: "left", cursor: "pointer", minWidth: 160, fontFamily: theme.font }}>
+            <div style={{ color: theme.orange, marginBottom: 10 }}>{Icons.store}</div>
+            <p style={{ fontWeight: 800, fontSize: 14, color: "#1a1a2e", margin: "0 0 2px" }}>Espace Gérant</p>
+            <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>Gérez votre resto</p>
+          </button>
+          <button onClick={() => setVue("login-cuisine")} style={{ flex: "0 0 auto", background: "#f0f9ff", border: "1px solid rgba(59,130,246,0.15)", borderRadius: 18, padding: "16px 18px", textAlign: "left", cursor: "pointer", minWidth: 160, fontFamily: theme.font }}>
+            <div style={{ color: "#3B82F6", marginBottom: 10 }}>{Icons.chef}</div>
+            <p style={{ fontWeight: 800, fontSize: 14, color: "#1a1a2e", margin: "0 0 2px" }}>Espace Cuisine</p>
+            <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>Suivez les commandes</p>
+          </button>
+          <button onClick={() => { chargerRestos(); setVue("liste-restos"); }} style={{ flex: "0 0 auto", background: "#f0fdf7", border: "1px solid rgba(0,200,150,0.15)", borderRadius: 18, padding: "16px 18px", textAlign: "left", cursor: "pointer", minWidth: 160, fontFamily: theme.font }}>
+            <div style={{ color: theme.green, marginBottom: 10 }}>{Icons.user}</div>
+            <p style={{ fontWeight: 800, fontSize: 14, color: "#1a1a2e", margin: "0 0 2px" }}>Je suis client</p>
+            <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>Voir les restaurants</p>
+          </button>
+        </div>
+      </div>
+
       {/* FEATURES */}
-      <div style={{ padding: "32px 20px", background: "#fff" }}>
+      <div style={{ padding: "24px 20px 40px", background: "#fff" }}>
+        <p style={{ ...s.sectionTitle, color: "#9ca3af" }}>Pourquoi Launge</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {[
             { icon: "📱", title: "QR Code", desc: "Commande depuis la table", color: theme.orange },
