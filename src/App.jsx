@@ -4,9 +4,11 @@ import { supabase } from "./supabaseClient";
 
 const API = "https://launge-backend.onrender.com";
 
-// 👉 Remplace cette adresse par ton image de fond une fois que tu me l'envoies.
-// Format conseillé : une photo de plat/restaurant en haute qualité, format paysage.
+// 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
 const HERO_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop";
+const KITCHEN_IMAGE = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=1400&auto=format&fit=crop";
+const DINING_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
+const RESTOS_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
 
 const theme = {
   bg: "#0F1117",
@@ -472,21 +474,26 @@ export default function App() {
   const supprimerResto = async (id) => { if (!confirm("Supprimer ce restaurant ?")) return; await fetch(`${API}/api/admin/restaurants/${id}`, { method: "DELETE" }); chargerRestosAdmin(); };
   // ── VUE CUISINE SÉPARÉE ──
   if (vue === "login-cuisine") return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f8f9ff 0%, #fff5f0 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
+    <div style={{
+      minHeight: "100vh",
+      backgroundImage: `linear-gradient(180deg, rgba(10,10,15,0.55) 0%, rgba(10,10,15,0.75) 60%, rgba(15,17,23,0.97) 100%), url(${KITCHEN_IMAGE})`,
+      backgroundSize: "cover", backgroundPosition: "center",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font
+    }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(255,107,53,0.35)", color: "#fff" }}>{Icons.chef}</div>
-          <h2 style={{ fontWeight: 800, fontSize: 24, color: "#1a1a2e", margin: "0 0 6px" }}>Espace Cuisine</h2>
-          <p style={{ color: "#9ca3af", fontSize: 14, margin: 0 }}>Accès réservé au personnel</p>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(255,107,53,0.5)", color: "#fff" }}>{Icons.chef}</div>
+          <h2 style={{ fontWeight: 800, fontSize: 26, color: "#fff", margin: "0 0 6px" }}>Espace Cuisine</h2>
+          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, margin: 0 }}>Accès réservé au personnel</p>
         </div>
-        <div style={{ background: "#fff", borderRadius: 24, padding: 28, boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+        <div style={{ background: "rgba(255,255,255,0.97)", borderRadius: 24, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.4)", backdropFilter: "blur(10px)" }}>
           <label style={{ ...s.label, color: "#6b7280" }}>Code restaurant</label>
           <input placeholder="LNG-XXXXX" value={connexionCuisine.code_unique} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_unique: e.target.value.toUpperCase() })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <label style={{ ...s.label, color: "#6b7280" }}>Code cuisine</label>
           <input placeholder="••••" type="password" value={connexionCuisine.code_cuisine} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_cuisine: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <button onClick={connecterCuisine} style={{ ...s.btnOrange, marginTop: 8 }} disabled={loading}>{loading ? "Connexion..." : "Accéder à la cuisine"}</button>
         </div>
-        <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 12, color: "#6b7280", borderColor: "#e5e7eb" }}>← Retour</button>
+        <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 14, color: "rgba(255,255,255,0.8)", borderColor: "rgba(255,255,255,0.25)" }}>← Retour</button>
       </div>
     </div>
   );
@@ -494,15 +501,19 @@ export default function App() {
   if (vue === "vue-cuisine") return (
     <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
       <audio ref={audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
-      <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+      <div style={{
+        backgroundImage: `linear-gradient(120deg, rgba(255,107,53,0.95) 0%, rgba(255,140,66,0.9) 100%), url(${KITCHEN_IMAGE})`,
+        backgroundSize: "cover", backgroundPosition: "center",
+        padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 4px 20px rgba(255,107,53,0.25)"
+      }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{Icons.chef}</div>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{Icons.chef}</div>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>Cuisine — {restoCuisine?.nom}</p>
-            {nouvellesCommandes > 0 && <p style={{ margin: 0, fontSize: 11, color: theme.orange, fontWeight: 600 }}>{nouvellesCommandes} nouvelle(s) commande(s)</p>}
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#fff" }}>Cuisine — {restoCuisine?.nom}</p>
+            {nouvellesCommandes > 0 && <p style={{ margin: 0, fontSize: 11, color: "#fff", fontWeight: 700 }}>{nouvellesCommandes} nouvelle(s) commande(s)</p>}
           </div>
         </div>
-        <button onClick={() => { setRestoCuisine(null); setCommandesCuisine([]); setNouvellesCommandes(0); setVue("accueil"); }} style={{ ...s.btnDanger, fontSize: 13 }}>Quitter</button>
+        <button onClick={() => { setRestoCuisine(null); setCommandesCuisine([]); setNouvellesCommandes(0); setVue("accueil"); }} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontFamily: theme.font, fontWeight: 600 }}>Quitter</button>
       </div>
       <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
         {commandesCuisine.length === 0 && (
@@ -540,11 +551,11 @@ export default function App() {
   );
 
   if (vue === "login-admin") return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #1a0a2e, #0F1117)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 30% 20%, #2a1454 0%, #1a0a2e 45%, #0F1117 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ textAlign: "center", marginBottom: 32, color: "#fff" }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.purple, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(124,58,237,0.4)", color: "#fff" }}>{Icons.shield}</div>
-          <h2 style={{ fontWeight: 800, fontSize: 24, margin: "0 0 6px" }}>Administration</h2>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.purple, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(124,58,237,0.5)", color: "#fff" }}>{Icons.shield}</div>
+          <h2 style={{ fontWeight: 800, fontSize: 26, margin: "0 0 6px" }}>Administration</h2>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, margin: 0 }}>Accès restreint</p>
         </div>
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 24, padding: 28, border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -562,12 +573,12 @@ export default function App() {
     const refuses = restosAdmin.filter(r => r.statut === "refuse");
     return (
       <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
-        <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        <div style={{ background: "radial-gradient(circle at 20% 30%, #3d1f7a 0%, #1a0a2e 70%)", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 4px 20px rgba(124,58,237,0.25)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: gradients.purple, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{Icons.shield}</div>
-            <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Administration Launge</span>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{Icons.shield}</div>
+            <span style={{ fontWeight: 700, color: "#fff" }}>Administration Launge</span>
           </div>
-          <button onClick={() => { setAdmin(null); setVue("accueil"); }} style={{ ...s.btnDanger, fontSize: 13 }}>Déconnexion</button>
+          <button onClick={() => { setAdmin(null); setVue("accueil"); }} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontFamily: theme.font, fontWeight: 600 }}>Déconnexion</button>
         </div>
         <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
           {enAttente.length > 0 && (
@@ -720,15 +731,19 @@ export default function App() {
     const filtres = restos.filter(r => r.nom.toLowerCase().includes(recherche.toLowerCase()));
     return (
       <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
-        <div style={{ background: gradients.orange, padding: "20px 20px 70px" }}>
+        <div style={{
+          backgroundImage: `linear-gradient(160deg, rgba(255,107,53,0.88) 0%, rgba(255,140,66,0.82) 60%, rgba(255,215,0,0.75) 100%), url(${RESTOS_IMAGE})`,
+          backgroundSize: "cover", backgroundPosition: "center",
+          padding: "20px 20px 70px"
+        }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <button onClick={() => setVue("accueil")} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: "8px 12px", color: "#fff", cursor: "pointer" }}>{Icons.back}</button>
-            <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Restaurants</span>
+            <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Restaurants</span>
             <div style={{ width: 38 }}></div>
           </div>
           <div style={{ position: "relative" }}>
-            <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.7)" }}>{Icons.search}</div>
-            <input placeholder="Rechercher un restaurant..." value={recherche} onChange={e => setRecherche(e.target.value)} style={{ ...s.input, paddingLeft: 44, marginBottom: 0, background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 14 }} />
+            <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.85)" }}>{Icons.search}</div>
+            <input placeholder="Rechercher un restaurant..." value={recherche} onChange={e => setRecherche(e.target.value)} style={{ ...s.input, paddingLeft: 44, marginBottom: 0, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 14 }} />
           </div>
         </div>
         <div style={{ padding: "0 16px", marginTop: -40 }}>
@@ -756,12 +771,16 @@ export default function App() {
 
   if (vue === "inscription") return (
     <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
-      <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={() => setVue("login-gerant")} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }}>{Icons.back}</button>
-        <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Inscrire mon restaurant</span>
+      <div style={{
+        backgroundImage: `linear-gradient(180deg, rgba(10,10,15,0.35) 0%, rgba(10,10,15,0.85) 100%), url(${DINING_IMAGE})`,
+        backgroundSize: "cover", backgroundPosition: "center",
+        padding: "18px 20px 44px", display: "flex", alignItems: "center", gap: 12
+      }}>
+        <button onClick={() => setVue("login-gerant")} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 10px", cursor: "pointer", color: "#fff" }}>{Icons.back}</button>
+        <span style={{ fontWeight: 800, color: "#fff", fontSize: 18 }}>Inscrire mon restaurant</span>
       </div>
-      <div style={{ padding: 20, maxWidth: 480, margin: "0 auto" }}>
-        <div style={{ background: "#fff", borderRadius: 24, padding: 24, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+      <div style={{ padding: 20, maxWidth: 480, margin: "-28px auto 0" }}>
+        <div style={{ background: "#fff", borderRadius: 24, padding: 24, boxShadow: "0 12px 40px rgba(0,0,0,0.12)" }}>
           {[{ k: "nom", l: "Nom du restaurant", p: "Ex: Le Gourmet", t: "text" }, { k: "ville", l: "Ville", p: "Ex: Douala", t: "text" }, { k: "telephone", l: "Téléphone", p: "690 000 000", t: "text" }, { k: "email", l: "Email", p: "contact@resto.com", t: "email" }, { k: "mot_de_passe", l: "Mot de passe", p: "••••••••", t: "password" }].map(f => (
             <div key={f.k}>
               <label style={{ ...s.label, color: "#6b7280" }}>{f.l}</label>
@@ -775,22 +794,27 @@ export default function App() {
   );
 
   if (vue === "login-gerant") return (
-    <div style={{ minHeight: "100vh", background: "#f8f9ff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font }}>
+    <div style={{
+      minHeight: "100vh",
+      backgroundImage: `linear-gradient(180deg, rgba(10,10,15,0.5) 0%, rgba(10,10,15,0.8) 60%, rgba(248,249,255,1) 100%), url(${DINING_IMAGE})`,
+      backgroundSize: "cover", backgroundPosition: "center",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: theme.font
+    }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(255,107,53,0.3)", color: "#fff", fontSize: 28 }}>🏪</div>
-          <h2 style={{ fontWeight: 800, fontSize: 24, color: "#1a1a2e", margin: "0 0 6px" }}>Bienvenue</h2>
-          <p style={{ color: "#9ca3af", fontSize: 14, margin: 0 }}>Connectez-vous à votre espace</p>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 32px rgba(255,107,53,0.5)", color: "#fff", fontSize: 28 }}>🏪</div>
+          <h2 style={{ fontWeight: 800, fontSize: 26, color: "#fff", margin: "0 0 6px" }}>Bienvenue</h2>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, margin: 0 }}>Connectez-vous à votre espace</p>
         </div>
-        <div style={{ background: "#fff", borderRadius: 24, padding: 28, boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+        <div style={{ background: "rgba(255,255,255,0.97)", borderRadius: 24, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", backdropFilter: "blur(10px)" }}>
           <label style={{ ...s.label, color: "#6b7280" }}>Adresse email</label>
           <input placeholder="votre@email.com" type="email" value={connexion.email} onChange={e => setConnexion({ ...connexion, email: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <label style={{ ...s.label, color: "#6b7280" }}>Mot de passe</label>
           <input placeholder="••••••••" type="password" value={connexion.mot_de_passe} onChange={e => setConnexion({ ...connexion, mot_de_passe: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <button onClick={connecterGerant} style={{ ...s.btnOrange, marginTop: 4 }} disabled={loading}>{loading ? "Connexion..." : "Se connecter"}</button>
         </div>
-        <button onClick={() => setVue("inscription")} style={{ ...s.btnGhost, marginTop: 12, borderColor: "#e5e7eb", color: "#6b7280" }}>Inscrire mon restaurant</button>
-        <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 10, borderColor: "#e5e7eb", color: "#9ca3af" }}>← Retour</button>
+        <button onClick={() => setVue("inscription")} style={{ ...s.btnGhost, marginTop: 14, borderColor: "rgba(255,255,255,0.3)", color: "#fff" }}>Inscrire mon restaurant</button>
+        <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 10, borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>← Retour</button>
       </div>
     </div>
   );
@@ -827,12 +851,16 @@ export default function App() {
 
     return (
       <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
-        <div style={{ background: gradients.orange, padding: "16px 20px 60px" }}>
+        <div style={{
+          backgroundImage: `linear-gradient(160deg, rgba(255,107,53,0.9) 0%, rgba(255,140,66,0.85) 100%), url(${HERO_IMAGE})`,
+          backgroundSize: "cover", backgroundPosition: "center",
+          padding: "16px 20px 60px"
+        }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
             <button onClick={() => setVue("liste-restos")} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: "8px 12px", color: "#fff", cursor: "pointer" }}>{Icons.back}</button>
             <div style={{ textAlign: "center" }}>
-              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: "#fff" }}>{restoInfo?.nom || "Menu"}</p>
-              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Table {numeroTable}</p>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 17, color: "#fff" }}>{restoInfo?.nom || "Menu"}</p>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Table {numeroTable}</p>
             </div>
             <div style={{ width: 44 }}></div>
           </div>
@@ -885,8 +913,12 @@ export default function App() {
         <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Paiement</span>
       </div>
       <div style={{ padding: 20, maxWidth: 480, margin: "0 auto" }}>
-        <div style={{ background: gradients.orange, borderRadius: 24, padding: 28, textAlign: "center", marginBottom: 24, boxShadow: "0 8px 32px rgba(255,107,53,0.25)" }}>
-          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, margin: "0 0 8px" }}>Total à régler</p>
+        <div style={{
+          borderRadius: 24, padding: 28, textAlign: "center", marginBottom: 24, boxShadow: "0 12px 40px rgba(255,107,53,0.3)",
+          backgroundImage: `linear-gradient(160deg, rgba(255,107,53,0.92) 0%, rgba(255,140,66,0.9) 100%), url(${HERO_IMAGE})`,
+          backgroundSize: "cover", backgroundPosition: "center",
+        }}>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, margin: "0 0 8px" }}>Total à régler</p>
           <p style={{ fontSize: 42, fontWeight: 900, color: "#fff", margin: 0 }}>{totalPanier.toLocaleString()} <span style={{ fontSize: 20, fontWeight: 600 }}>FCFA</span></p>
         </div>
         <p style={{ ...s.sectionTitle, color: "#9ca3af" }}>Choisir le mode de paiement</p>
@@ -904,12 +936,17 @@ export default function App() {
   );
 
   if (vue === "confirmation") return (
-    <div style={{ minHeight: "100vh", background: "#f8f9ff", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40, textAlign: "center", fontFamily: theme.font }}>
-      <div style={{ width: 90, height: 90, borderRadius: "50%", background: gradients.green, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, boxShadow: "0 8px 32px rgba(0,200,150,0.3)", color: "#fff" }}>
+    <div style={{
+      minHeight: "100vh",
+      backgroundImage: `linear-gradient(180deg, rgba(248,249,255,0.4) 0%, rgba(248,249,255,0.97) 40%), url(${HERO_IMAGE})`,
+      backgroundSize: "cover", backgroundPosition: "center top",
+      display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40, textAlign: "center", fontFamily: theme.font
+    }}>
+      <div style={{ width: 90, height: 90, borderRadius: "50%", background: gradients.green, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, boxShadow: "0 8px 32px rgba(0,200,150,0.4)", color: "#fff" }}>
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h2 style={{ color: "#1a1a2e", fontSize: 26, fontWeight: 800, margin: "0 0 8px" }}>Commande confirmée !</h2>
-      <p style={{ color: "#9ca3af", marginBottom: 36, fontSize: 15 }}>Votre commande est en cours de préparation</p>
+      <h2 style={{ color: "#1a1a2e", fontSize: 28, fontWeight: 800, margin: "0 0 8px" }}>Commande confirmée !</h2>
+      <p style={{ color: "#6b7280", marginBottom: 36, fontSize: 15 }}>Votre commande est en cours de préparation</p>
       <button onClick={() => setVue("accueil")} style={{ ...s.btnOrange, maxWidth: 280 }}>Retour à l'accueil</button>
     </div>
   );
@@ -930,17 +967,17 @@ export default function App() {
         <audio ref={audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
 
         {/* HEADER */}
-        <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        <div style={{ background: gradients.orange, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 4px 20px rgba(255,107,53,0.3)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: gradients.orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>
               {gerant?.nom?.[0]?.toUpperCase()}
             </div>
             <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{gerant?.nom}</p>
-              <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>Tableau de bord</p>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#fff" }}>{gerant?.nom}</p>
+              <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.8)" }}>Tableau de bord</p>
             </div>
           </div>
-          <button onClick={() => { setGerant(null); setVue("accueil"); }} style={{ ...s.btnDanger, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>{Icons.logout} Quitter</button>
+          <button onClick={() => { setGerant(null); setVue("accueil"); }} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: theme.font, fontWeight: 600 }}>{Icons.logout} Quitter</button>
         </div>
 
         {/* TABS */}
