@@ -5,8 +5,8 @@ import { supabase } from "./supabaseClient";
 const API = "https://launge-backend.onrender.com";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
-const HERO_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop";
-const KITCHEN_IMAGE = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=1400&auto=format&fit=crop";
+const HERO_IMAGE = "https://cdn.cms.africa.com/wp-content/uploads/2019/05/Webp.net-compress-image-16-768x338-1.jpg";
+const KITCHEN_IMAGE = "https://images.pexels.com/photos/28074289/pexels-photo-28074289/free-photo-of-african.jpeg?auto=compress&w=1400";
 const DINING_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
 const RESTOS_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
 
@@ -221,6 +221,30 @@ const Icons = {
   plus: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
   image: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
   trending: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  eye: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a20.32 20.32 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+};
+
+const PasswordField = ({ value, onChange, placeholder, style }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        placeholder={placeholder}
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        style={{ ...style, paddingRight: 42 }}
+      />
+      <button
+        type="button"
+        onClick={() => setShow(v => !v)}
+        style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 4, display: "flex" }}
+      >
+        {show ? Icons.eyeOff : Icons.eye}
+      </button>
+    </div>
+  );
 };
 
 const LogoLaunge = ({ size = 36, light = false }) => (
@@ -490,7 +514,7 @@ export default function App() {
           <label style={{ ...s.label, color: "#6b7280" }}>Code restaurant</label>
           <input placeholder="LNG-XXXXX" value={connexionCuisine.code_unique} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_unique: e.target.value.toUpperCase() })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <label style={{ ...s.label, color: "#6b7280" }}>Code cuisine</label>
-          <input placeholder="••••" type="password" value={connexionCuisine.code_cuisine} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_cuisine: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+          <PasswordField placeholder="••••" value={connexionCuisine.code_cuisine} onChange={e => setConnexionCuisine({ ...connexionCuisine, code_cuisine: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <button onClick={connecterCuisine} style={{ ...s.btnOrange, marginTop: 8 }} disabled={loading}>{loading ? "Connexion..." : "Accéder à la cuisine"}</button>
         </div>
         <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 14, color: "rgba(255,255,255,0.8)", borderColor: "rgba(255,255,255,0.25)" }}>← Retour</button>
@@ -560,7 +584,7 @@ export default function App() {
         </div>
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 24, padding: 28, border: "1px solid rgba(255,255,255,0.1)" }}>
           <input placeholder="Email administrateur" type="email" value={connexionAdmin.email} onChange={e => setConnexionAdmin({ ...connexionAdmin, email: e.target.value })} style={{ ...s.input, marginBottom: 12 }} />
-          <input placeholder="••••••••" type="password" value={connexionAdmin.mot_de_passe} onChange={e => setConnexionAdmin({ ...connexionAdmin, mot_de_passe: e.target.value })} style={s.input} />
+          <PasswordField placeholder="••••••••" value={connexionAdmin.mot_de_passe} onChange={e => setConnexionAdmin({ ...connexionAdmin, mot_de_passe: e.target.value })} style={s.input} />
           <button onClick={connecterAdmin} style={{ background: gradients.purple, color: "#fff", border: "none", borderRadius: 14, padding: "15px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", width: "100%", boxShadow: "0 4px 20px rgba(124,58,237,0.4)" }} disabled={loading}>{loading ? "Connexion..." : "Se connecter"}</button>
         </div>
       </div>
@@ -781,12 +805,14 @@ export default function App() {
       </div>
       <div style={{ padding: 20, maxWidth: 480, margin: "-28px auto 0" }}>
         <div style={{ background: "#fff", borderRadius: 24, padding: 24, boxShadow: "0 12px 40px rgba(0,0,0,0.12)" }}>
-          {[{ k: "nom", l: "Nom du restaurant", p: "Ex: Le Gourmet", t: "text" }, { k: "ville", l: "Ville", p: "Ex: Douala", t: "text" }, { k: "telephone", l: "Téléphone", p: "690 000 000", t: "text" }, { k: "email", l: "Email", p: "contact@resto.com", t: "email" }, { k: "mot_de_passe", l: "Mot de passe", p: "••••••••", t: "password" }].map(f => (
+          {[{ k: "nom", l: "Nom du restaurant", p: "Ex: Le Gourmet", t: "text" }, { k: "ville", l: "Ville", p: "Ex: Douala", t: "text" }, { k: "telephone", l: "Téléphone", p: "690 000 000", t: "text" }, { k: "email", l: "Email", p: "contact@resto.com", t: "email" }].map(f => (
             <div key={f.k}>
               <label style={{ ...s.label, color: "#6b7280" }}>{f.l}</label>
               <input placeholder={f.p} type={f.t} value={inscription[f.k]} onChange={e => setInscription({ ...inscription, [f.k]: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
             </div>
           ))}
+          <label style={{ ...s.label, color: "#6b7280" }}>Mot de passe</label>
+          <PasswordField placeholder="••••••••" value={inscription.mot_de_passe} onChange={e => setInscription({ ...inscription, mot_de_passe: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <button onClick={inscrireGerant} style={s.btnOrange} disabled={loading}>{loading ? "Création..." : "Créer mon compte"}</button>
         </div>
       </div>
@@ -810,7 +836,7 @@ export default function App() {
           <label style={{ ...s.label, color: "#6b7280" }}>Adresse email</label>
           <input placeholder="votre@email.com" type="email" value={connexion.email} onChange={e => setConnexion({ ...connexion, email: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <label style={{ ...s.label, color: "#6b7280" }}>Mot de passe</label>
-          <input placeholder="••••••••" type="password" value={connexion.mot_de_passe} onChange={e => setConnexion({ ...connexion, mot_de_passe: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
+          <PasswordField placeholder="••••••••" value={connexion.mot_de_passe} onChange={e => setConnexion({ ...connexion, mot_de_passe: e.target.value })} style={{ ...s.input, background: "#f9fafb", border: "1.5px solid #e5e7eb", color: "#1a1a2e" }} />
           <button onClick={connecterGerant} style={{ ...s.btnOrange, marginTop: 4 }} disabled={loading}>{loading ? "Connexion..." : "Se connecter"}</button>
         </div>
         <button onClick={() => setVue("inscription")} style={{ ...s.btnGhost, marginTop: 14, borderColor: "rgba(255,255,255,0.3)", color: "#fff" }}>Inscrire mon restaurant</button>
