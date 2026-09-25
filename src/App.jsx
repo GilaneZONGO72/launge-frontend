@@ -5,8 +5,8 @@ import { supabase } from "./supabaseClient";
 const API = "https://launge-backend.onrender.com";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
-const HERO_IMAGE = "https://cdn.cms.africa.com/wp-content/uploads/2019/05/Webp.net-compress-image-16-768x338-1.jpg";
-const KITCHEN_IMAGE = "https://images.pexels.com/photos/28074289/pexels-photo-28074289/free-photo-of-african.jpeg?auto=compress&w=1400";
+const HERO_IMAGE = "https://commons.wikimedia.org/wiki/Special:FilePath/Plat_camerounais_Ndol%C3%A8_au_baton_de_manioc_et_manioc_pil%C3%A9.jpg?width=1600";
+const KITCHEN_IMAGE = "https://commons.wikimedia.org/wiki/Special:FilePath/Water_Impact_0.jpg?width=1400";
 const DINING_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
 const RESTOS_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
 
