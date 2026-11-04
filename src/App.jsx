@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "./supabaseClient";
 
-const API = "https://launge-backend.onrender.com";
+const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
 const HERO_IMAGE = "https://commons.wikimedia.org/wiki/Special:FilePath/Plat_camerounais_Ndol%C3%A8_au_baton_de_manioc_et_manioc_pil%C3%A9.jpg?width=1600";
