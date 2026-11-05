@@ -5,7 +5,7 @@ import { supabase } from "./supabaseClient";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
-const HERO_IMAGE = "https://commons.wikimedia.org/wiki/Special:FilePath/Plat_camerounais_Ndol%C3%A8_au_baton_de_manioc_et_manioc_pil%C3%A9.jpg?width=1600";
+const HERO_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop";
 const KITCHEN_IMAGE = "https://commons.wikimedia.org/wiki/Special:FilePath/Water_Impact_0.jpg?width=1400";
 const DINING_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
 const RESTOS_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400&auto=format&fit=crop";
