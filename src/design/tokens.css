@@ -1,0 +1,139 @@
+/* ============================================================
+   LAUNGE — design system (tokens + composants de base)
+   Toutes les classes commencent par "lg-" pour ne jamais entrer
+   en conflit avec l'ancien style du site.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap");
+
+:root {
+  --lg-nuit: #111827;
+  --lg-orange: #f47745;
+  --lg-orange-doux: #fdeee7;
+  --lg-ivoire: #f7f6f2;
+  --lg-blanc: #ffffff;
+  --lg-vert: #079b78;
+  --lg-vert-doux: #e3f5f0;
+  --lg-rouge: #dc5252;
+  --lg-rouge-doux: #fbe9e9;
+  --lg-texte: #111827;
+  --lg-texte-2: #5b6472;
+  --lg-texte-3: #8b93a1;
+  --lg-bordure: #e8e6df;
+  --lg-rayon-s: 12px;
+  --lg-rayon-m: 18px;
+  --lg-rayon-l: 24px;
+  --lg-ombre-s: 0 1px 2px rgba(17, 24, 39, 0.06);
+  --lg-ombre-m: 0 6px 20px rgba(17, 24, 39, 0.08);
+  --lg-ombre-l: 0 16px 40px rgba(17, 24, 39, 0.18);
+  --lg-titre: "Manrope", "Inter", system-ui, sans-serif;
+  --lg-texte-police: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Conteneur de page : remet à plat les réglages hérités de l'ancien modèle */
+.lg-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100svh;
+  text-align: left;
+  background: var(--lg-ivoire);
+  color: var(--lg-texte);
+  font-family: var(--lg-texte-police);
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+.lg-page *, .lg-page *::before, .lg-page *::after { box-sizing: border-box; }
+.lg-page button { font-family: inherit; }
+.lg-page :focus-visible { outline: 3px solid rgba(244, 119, 69, 0.55); outline-offset: 2px; }
+.lg-colonne { width: 100%; max-width: 560px; margin: 0 auto; padding: 0 16px; }
+
+/* Typographie */
+.lg-titre { font-family: var(--lg-titre); font-weight: 800; letter-spacing: -0.02em; color: var(--lg-nuit); margin: 0; }
+.lg-h1 { font-size: 28px; line-height: 1.15; }
+.lg-h3 { font-size: 16px; line-height: 1.25; }
+.lg-legende { font-size: 12px; color: var(--lg-texte-3); font-weight: 500; }
+
+/* Boutons */
+.lg-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer;
+  font-family: var(--lg-titre); font-weight: 700; font-size: 14px;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.lg-btn:active { transform: scale(0.97); }
+.lg-btn-orange { background: var(--lg-orange); color: #fff; }
+.lg-btn-nuit { background: var(--lg-nuit); color: #fff; }
+.lg-btn-rond { width: 44px; padding: 0; background: var(--lg-blanc); color: var(--lg-nuit); box-shadow: var(--lg-ombre-s); border: 1px solid var(--lg-bordure); }
+
+/* Pastilles / badges */
+.lg-badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1.2; background: var(--lg-blanc); color: var(--lg-nuit);
+}
+.lg-badge-vert { background: var(--lg-vert-doux); color: var(--lg-vert); }
+.lg-badge-rouge { background: var(--lg-rouge-doux); color: var(--lg-rouge); }
+.lg-badge-orange { background: var(--lg-orange-doux); color: #c4521f; }
+
+/* Filtres (chips) */
+.lg-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 16px 6px; margin: 0 -16px; scrollbar-width: none; }
+.lg-chips::-webkit-scrollbar { display: none; }
+.lg-chip {
+  flex: 0 0 auto; min-height: 40px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--lg-bordure); background: var(--lg-blanc); color: var(--lg-texte-2);
+  font-weight: 600; font-size: 14px; transition: background .15s, color .15s, border-color .15s;
+}
+.lg-chip[aria-pressed="true"] { background: var(--lg-nuit); border-color: var(--lg-nuit); color: #fff; }
+
+/* Champ de recherche */
+.lg-recherche { position: relative; }
+.lg-recherche svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--lg-texte-3); pointer-events: none; }
+.lg-recherche input {
+  width: 100%; height: 48px; padding: 0 16px 0 46px; border-radius: 999px; font: inherit; font-size: 15px;
+  border: 1px solid var(--lg-bordure); background: var(--lg-blanc); color: var(--lg-texte);
+}
+.lg-recherche input::placeholder { color: var(--lg-texte-3); }
+
+/* Carte plat (menu client) */
+.lg-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.lg-plat { background: var(--lg-blanc); border-radius: var(--lg-rayon-l); box-shadow: var(--lg-ombre-m); overflow: hidden; display: flex; flex-direction: column; }
+.lg-plat[data-indispo="true"] .lg-plat-photo img, .lg-plat[data-indispo="true"] .lg-plat-emoji { filter: grayscale(1); opacity: 0.55; }
+.lg-plat-photo { position: relative; aspect-ratio: 1 / 1; background: linear-gradient(145deg, #fbe5d9, #f3ece3); display: flex; align-items: center; justify-content: center; }
+.lg-plat-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lg-plat-emoji { font-size: 56px; line-height: 1; }
+.lg-plat-badges { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.lg-plat-action { position: absolute; right: 10px; bottom: 10px; }
+.lg-plat-corps { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 2px; }
+.lg-plat-nom { font-family: var(--lg-titre); font-weight: 700; font-size: 15px; line-height: 1.25; color: var(--lg-nuit); margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
+.lg-plat-cat { font-size: 12px; color: var(--lg-texte-3); }
+.lg-prix { font-family: var(--lg-titre); font-weight: 800; font-size: 16px; color: var(--lg-nuit); margin-top: 6px; }
+.lg-prix small { font-weight: 600; font-size: 11px; color: var(--lg-texte-3); margin-left: 3px; }
+
+.lg-ajout { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--lg-orange); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px rgba(244, 119, 69, 0.45); transition: transform .12s; }
+.lg-ajout:active { transform: scale(0.92); }
+.lg-pas { display: flex; align-items: center; background: var(--lg-nuit); border-radius: 999px; box-shadow: var(--lg-ombre-m); }
+.lg-pas button { width: 40px; height: 44px; border: 0; background: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.lg-pas span { min-width: 18px; text-align: center; color: #fff; font-family: var(--lg-titre); font-weight: 800; font-size: 15px; }
+
+/* Barre panier fixe */
+.lg-panier { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); pointer-events: none; }
+.lg-panier-btn {
+  pointer-events: auto; width: 100%; max-width: 528px; margin: 0 auto; min-height: 60px; padding: 0 12px 0 14px; display: flex; align-items: center; gap: 12px;
+  background: var(--lg-nuit); color: #fff; border: 0; border-radius: 22px; cursor: pointer; box-shadow: var(--lg-ombre-l);
+  font-family: var(--lg-titre); font-weight: 700; font-size: 15px; text-align: left;
+}
+.lg-panier-nb { min-width: 34px; height: 34px; border-radius: 50%; background: var(--lg-orange); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; }
+.lg-panier-total { margin-left: auto; font-weight: 800; }
+.lg-panier-total small { font-weight: 600; opacity: .7; margin-left: 3px; }
+
+/* États */
+.lg-vide { text-align: center; color: var(--lg-texte-3); padding: 48px 16px; }
+.lg-vide svg { margin-bottom: 8px; color: var(--lg-texte-3); }
+.lg-squelette { border-radius: var(--lg-rayon-l); background: linear-gradient(90deg, #ece9e1 25%, #f4f2ec 50%, #ece9e1 75%); background-size: 200% 100%; animation: lg-brille 1.3s infinite; aspect-ratio: 3 / 4; }
+@keyframes lg-brille { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .lg-squelette { animation: none; } .lg-btn, .lg-ajout { transition: none; } }
+
+/* Carte d'information (recrutement) */
+.lg-carte { background: var(--lg-blanc); border-radius: var(--lg-rayon-l); box-shadow: var(--lg-ombre-m); padding: 18px; }
+@media (min-width: 560px) { .lg-grille { gap: 18px; } }
