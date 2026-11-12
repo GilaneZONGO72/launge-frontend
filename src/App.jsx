@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "./supabaseClient";
+import "./design/tokens.css";
+import MenuClient from "./client/MenuClient";
 
 const API = "https://launge-backend-production.up.railway.app";
 
@@ -843,6 +845,18 @@ export default function App() {
         <button onClick={() => setVue("accueil")} style={{ ...s.btnGhost, marginTop: 10, borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>← Retour</button>
       </div>
     </div>
+  );
+if (vue === "menu") return (
+    <MenuClient
+      menu={menu}
+      panier={panier}
+      modifier={modifier}
+      totalPanier={totalPanier}
+      restoInfo={restoInfo}
+      numeroTable={numeroTable}
+      onRetour={() => setVue("liste-restos")}
+      onCommander={() => setVue("paiement")}
+    />
   );
 
   if (vue === "menu") {
