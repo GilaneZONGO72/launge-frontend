@@ -1,0 +1,51 @@
+/* Écrans client : paiement et suivi de commande (utilise les couleurs de design/tokens.css) */
+.lg-entete { display: flex; align-items: center; gap: 12px; padding: 16px 0 8px; }
+.lg-section-titre { font-family: var(--lg-titre); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--lg-texte-3); margin: 22px 0 10px; }
+
+.lg-total { background: var(--lg-nuit); color: #fff; border-radius: var(--lg-rayon-l); padding: 22px; margin-top: 12px; }
+.lg-total-etiquette { font-size: 13px; opacity: .7; }
+.lg-total-montant { font-family: var(--lg-titre); font-weight: 800; font-size: 38px; line-height: 1.1; margin-top: 4px; }
+.lg-total-montant small { font-size: 16px; font-weight: 700; opacity: .75; margin-left: 6px; }
+
+.lg-ligne { display: flex; align-items: baseline; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--lg-bordure); }
+.lg-ligne:last-child { border-bottom: 0; }
+.lg-ligne-qte { font-family: var(--lg-titre); font-weight: 800; color: var(--lg-orange); min-width: 28px; }
+.lg-ligne-nom { flex: 1; min-width: 0; font-weight: 500; }
+.lg-ligne-prix { font-weight: 600; white-space: nowrap; }
+
+.lg-modes { display: grid; gap: 10px; }
+.lg-mode { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer; padding: 14px 16px; border-radius: var(--lg-rayon-m); background: var(--lg-blanc); border: 2px solid transparent; box-shadow: var(--lg-ombre-s); font: inherit; color: inherit; }
+.lg-mode[aria-checked="true"] { border-color: var(--lg-orange); background: #fffaf7; }
+.lg-mode-icone { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; background: var(--lg-ivoire); color: var(--lg-nuit); }
+.lg-mode-nom { font-family: var(--lg-titre); font-weight: 700; font-size: 15px; }
+.lg-mode-sous { font-size: 12px; color: var(--lg-texte-3); }
+.lg-mode-coche { margin-left: auto; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--lg-bordure); display: flex; align-items: center; justify-content: center; color: #fff; flex: 0 0 auto; }
+.lg-mode[aria-checked="true"] .lg-mode-coche { background: var(--lg-orange); border-color: var(--lg-orange); }
+
+.lg-pied { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(247,246,242,0), var(--lg-ivoire) 30%); }
+.lg-pied .lg-btn { width: 100%; max-width: 528px; margin: 0 auto; display: flex; min-height: 56px; font-size: 16px; }
+.lg-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.lg-note { font-size: 12px; color: var(--lg-texte-3); text-align: center; margin-top: 14px; }
+
+/* Suivi */
+.lg-heros { text-align: center; padding: 28px 8px 8px; }
+.lg-heros-icone { width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; background: var(--lg-orange-doux); color: var(--lg-orange); }
+.lg-heros[data-etat="pret"] .lg-heros-icone, .lg-heros[data-etat="servi"] .lg-heros-icone { background: var(--lg-vert-doux); color: var(--lg-vert); }
+.lg-heros p { margin: 6px 0 0; color: var(--lg-texte-2); }
+
+.lg-etapes { list-style: none; margin: 18px 0 0; padding: 18px; background: var(--lg-blanc); border-radius: var(--lg-rayon-l); box-shadow: var(--lg-ombre-m); }
+.lg-etape { display: flex; align-items: center; gap: 14px; position: relative; padding: 10px 0; color: var(--lg-texte-3); font-weight: 600; }
+.lg-etape + .lg-etape::before { content: ""; position: absolute; left: 17px; top: -12px; height: 24px; width: 2px; background: var(--lg-bordure); }
+.lg-etape[data-etat="fait"] + .lg-etape::before, .lg-etape[data-etat="fait"] + .lg-etape[data-etat="actuelle"]::before { background: var(--lg-vert); }
+.lg-etape-pastille { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--lg-ivoire); flex: 0 0 auto; }
+.lg-etape[data-etat="fait"] { color: var(--lg-nuit); }
+.lg-etape[data-etat="fait"] .lg-etape-pastille { background: var(--lg-vert); color: #fff; }
+.lg-etape[data-etat="actuelle"] { color: var(--lg-nuit); font-weight: 800; }
+.lg-etape[data-etat="actuelle"] .lg-etape-pastille { background: var(--lg-orange); color: #fff; box-shadow: 0 0 0 6px var(--lg-orange-doux); animation: lg-pouls 1.8s ease-in-out infinite; }
+.lg-etape-sous { display: block; font-size: 12px; font-weight: 500; color: var(--lg-texte-3); }
+@keyframes lg-pouls { 50% { box-shadow: 0 0 0 10px rgba(244,119,69,.08); } }
+@media (prefers-reduced-motion: reduce) { .lg-etape[data-etat="actuelle"] .lg-etape-pastille { animation: none; } }
+
+.lg-bandeau { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: var(--lg-rayon-m); background: var(--lg-rouge-doux); color: #a63a3a; font-size: 13px; margin-top: 16px; }
+.lg-lien { margin-top: 16px; padding: 14px 16px; border-radius: var(--lg-rayon-m); background: var(--lg-blanc); box-shadow: var(--lg-ombre-s); font-size: 13px; color: var(--lg-texte-2); }
+.lg-lien .lg-btn { margin-top: 10px; width: 100%; background: var(--lg-ivoire); color: var(--lg-nuit); }
