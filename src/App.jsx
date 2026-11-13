@@ -326,14 +326,14 @@ export default function App() {
     document.head.appendChild(link);
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     const path = window.location.pathname;
     if (path === "/admin-secret-launge") { setVue("login-admin"); return; }
     const match = path.match(/^\/menu\/([^/]+)\/table-(.+)$/);
     if (match) { setNumeroTable(match[2]); chargerMenuParCode(match[1]); setVue("menu"); }
-  }, []);
-  const suivi = path.match(/^\/suivi\/([A-Za-z0-9_-]{16,64})$/);
+    const suivi = path.match(/^\/suivi\/([A-Za-z0-9_-]{16,64})$/);
     if (suivi) { setRefSuivi(suivi[1]); setVue("suivi"); }
+  }, []);
 
   useEffect(() => {
     if (!gerant?.id) return;
