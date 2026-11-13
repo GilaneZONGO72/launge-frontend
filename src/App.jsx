@@ -3,7 +3,8 @@ import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "./supabaseClient";
 import "./design/tokens.css";
 import MenuClient from "./client/MenuClient";
-
+import Paiement from "./client/Paiement";
+import Suivi from "./client/Suivi";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
@@ -313,6 +314,7 @@ export default function App() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [menuMobileOuvert, setMenuMobileOuvert] = useState(false);
   const audioRef = useRef(null);
+  const [refSuivi, setRefSuivi] = useState(null);
 
   // Charge la police Plus Jakarta Sans (rendu bold/arrondi, vivant, proche des grandes apps de livraison)
   useEffect(() => {
@@ -330,6 +332,8 @@ export default function App() {
     const match = path.match(/^\/menu\/([^/]+)\/table-(.+)$/);
     if (match) { setNumeroTable(match[2]); chargerMenuParCode(match[1]); setVue("menu"); }
   }, []);
+  const suivi = path.match(/^\/suivi\/([A-Za-z0-9_-]{16,64})$/);
+    if (suivi) { setRefSuivi(suivi[1]); setVue("suivi"); }
 
   useEffect(() => {
     if (!gerant?.id) return;
@@ -475,7 +479,11 @@ export default function App() {
     const items = Object.entries(panier).map(([id, qte]) => { const item = menu.find(i => i.id === id); return { id, nom: item.nom, qte, prix: item.prix }; });
     const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement }) });
     const data = await res.json(); if (data.error) return alert(data.error);
-    setPanier({}); setVue("confirmation");
+   setPanier({});
+    if (!data.reference_suivi) { setVue("confirmation"); return; }
+    window.history.pushState({}, "", `/suivi/${data.reference_suivi}`);
+    setRefSuivi(data.reference_suivi);
+    setVue("suivi");
   };
 
   const modifier = (id, delta) => {
@@ -946,6 +954,13 @@ if (vue === "menu") return (
     );
   }
 
+  if (vue === "paiement") return (
+    <Paiement menu={menu} panier={panier} totalPanier={totalPanier} onRetour={() => setVue("menu")} onPayer={passerCommande} />
+  );
+
+  if (vue === "suivi") return (
+    <Suivi reference={refSuivi} onAccueil={() => { window.history.pushState({}, "", "/"); setRefSuivi(null); setVue("accueil"); }} />
+  );
   if (vue === "paiement") return (
     <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: theme.font }}>
       <div style={{ background: "#fff", padding: "14px 20px", borderBottom: "1px solid #f0f0f5", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
