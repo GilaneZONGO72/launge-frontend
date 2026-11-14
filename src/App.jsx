@@ -5,6 +5,7 @@ import "./design/tokens.css";
 import MenuClient from "./client/MenuClient";
 import Paiement from "./client/Paiement";
 import Suivi from "./client/Suivi";
+import EspaceGerant from "./restaurant/EspaceGerant";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
@@ -1004,6 +1005,17 @@ if (vue === "menu") return (
       <p style={{ color: "#6b7280", marginBottom: 36, fontSize: 15 }}>Votre commande est en cours de préparation</p>
       <button onClick={() => setVue("accueil")} style={{ ...s.btnOrange, maxWidth: 280 }}>Retour à l'accueil</button>
     </div>
+  );
+  if (vue === "gerant") return (
+    <EspaceGerant
+      gerant={gerant} menu={menu} setMenu={setMenu} commandes={commandes} stats={stats}
+      commandesCuisine={commandesCuisine} nouvellesCommandes={nouvellesCommandes} setNouvellesCommandes={setNouvellesCommandes}
+      chargerCommandes={chargerCommandes} chargerStats={chargerStats} changerStatut={changerStatut} audioRef={audioRef}
+      recrutement={recrutement} setRecrutement={setRecrutement} sauvegarderRecrutement={sauvegarderRecrutement}
+      codeCuisine={codeCuisine} nouveauCodeCuisine={nouveauCodeCuisine} setNouveauCodeCuisine={setNouveauCodeCuisine} sauvegarderCodeCuisine={sauvegarderCodeCuisine}
+      nbTables={nbTables} setNbTables={setNbTables} lienQR={lienQR}
+      onQuitter={() => { setGerant(null); setVue("accueil"); }}
+    />
   );
 
   if (vue === "gerant") {
