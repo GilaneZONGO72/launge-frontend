@@ -766,6 +766,16 @@ useEffect(() => {
       </div>
     </div>
   );
+  if (vue === "liste-restos") return (
+  <ListeRestaurants
+    onRetour={() => setVue("accueil")}
+    onChoisir={async (r) => {
+      setRestoId(r.id); chargerMenu(r.id);
+      try { const res = await fetch(`${API}/api/restaurants/${r.id}/info`); const data = await res.json(); if (!data.error) setRestoInfo(data); } catch { /* le menu s'ouvre quand même */ }
+      setVue("menu");
+    }}
+  />
+);
 
   if (vue === "liste-restos") {
     const filtres = restos.filter(r => r.nom.toLowerCase().includes(recherche.toLowerCase()));
