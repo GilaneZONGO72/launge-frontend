@@ -89,7 +89,7 @@ export default function Suivi({ reference, onAccueil, intervalleMs = 5000 }) {
         ) : (
           <>
             <section className="lg-heros" data-etat={statut} aria-live="polite">
-              <div className="lg-heros-icone"><Icon nom={statut === "en_cours" ? "flamme" : statut === "pret" ? "cloche" : "sourire"} taille={34} /></div>
+              <div className="lg-heros-icone"><Icon nom={ICONE_HEROS[statut] || "flamme"} taille={34} /></div>
               <h1 className="lg-titre lg-h1">{titre}</h1>
               <p>{sous}</p>
             </section>
