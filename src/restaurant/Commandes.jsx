@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Ico from "./IconeGerant";
-import { STATUTS, STATUT_SUIVANT, fcfa, heure, jourCourt } from "./calculs";
+import { STATUTS, fcfa, heure, jourCourt } from "./calculs";
 
-const FILTRES = [["tout", "Toutes"], ["en_cours", "En préparation"], ["pret", "Prêtes"], ["servi", "Servies"]];
+const FILTRES = [["tout", "Toutes"], ["en_cours", "Nouvelles"], ["acceptee", "En préparation"], ["pret", "Prêtes"], ["servi", "Servies"]];
 const estAujourdhui = (d) => new Date(d).toDateString() === new Date().toDateString();
 
 export function Commandes({ commandes }) {
@@ -35,36 +35,6 @@ export function Commandes({ commandes }) {
         );
       })}
       {liste.length > max && <button className="lg-btn lg-btn-rond lg-pleine" style={{ width: "100%" }} onClick={() => setMax((m) => m + 30)}>Voir plus</button>}
-    </div>
-  );
-}
-
-// Vue cuisine provisoire (liste). Les 3 colonnes en direct arrivent au bloc suivant.
-export function Cuisine({ commandesCuisine, changerStatut }) {
-  const [occupe, setOccupe] = useState(null);
-  const avancer = async (c) => { setOccupe(c.id); try { await changerStatut(c.id, STATUT_SUIVANT[c.statut]); } finally { setOccupe(null); } };
-  return (
-    <div className="lg-pile">
-      <div><h1 className="lg-titre lg-h1">Cuisine</h1><div className="lg-legende">{commandesCuisine.length} en cours</div></div>
-      {commandesCuisine.length === 0 && <div className="lg-vide"><Ico nom="check" taille={32} /><div>Aucune commande en attente.</div></div>}
-      {commandesCuisine.map((c) => {
-        const st = STATUTS[c.statut] || { label: c.statut, classe: "" };
-        return (
-          <article className="lg-cmd lg-cmd-cuisine" data-statut={c.statut} key={c.id}>
-            <div className="lg-cmd-tete">
-              <strong className="lg-titre" style={{ fontSize: 20 }}>Table {c.numero_table || "—"}</strong>
-              <span className={`lg-badge ${st.classe}`}>{st.label}</span>
-              <span className="lg-legende" style={{ marginLeft: "auto" }}>{heure(c.created_at)}</span>
-            </div>
-            {(c.items || []).map((it, i) => <div className="lg-ligne" key={i}><span className="lg-ligne-qte" style={{ fontSize: 18 }}>{it.qte}×</span><span className="lg-ligne-nom" style={{ fontSize: 16 }}>{it.nom}</span></div>)}
-            {STATUT_SUIVANT[c.statut] && (
-              <button className={`lg-btn lg-pleine ${c.statut === "en_cours" ? "lg-btn-orange" : "lg-btn-vert"}`} style={{ marginTop: 12, minHeight: 52 }} disabled={occupe === c.id} onClick={() => avancer(c)}>
-                {occupe === c.id ? "…" : c.statut === "en_cours" ? "Marquer comme prête" : "Marquer comme servie"}
-              </button>
-            )}
-          </article>
-        );
-      })}
     </div>
   );
 }
