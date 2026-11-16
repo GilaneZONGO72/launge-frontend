@@ -1,0 +1,39 @@
+/* Restaurants : liste, cartes photo et profil. Utilise design/tokens.css. */
+.lg-restos { min-height: 100svh; background: var(--lg-ivoire); }
+.lg-restos-cadre { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.lg-restos-haut { position: sticky; top: 0; z-index: 20; padding: 14px 0; background: rgba(247, 246, 242, .94); backdrop-filter: blur(12px); }
+.lg-restos-ligne { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.lg-restos-grille { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 10px 0 56px; }
+@media (min-width: 640px) { .lg-restos-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; } }
+@media (min-width: 1000px) { .lg-restos-grille { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Une carte = un restaurant */
+.lg-resto { display: flex; flex-direction: column; width: 100%; padding: 0; border: 0; text-align: left; background: var(--lg-blanc); border-radius: var(--lg-rayon-l); box-shadow: var(--lg-ombre-m); overflow: hidden; cursor: pointer; font: inherit; color: inherit; transition: transform .15s ease, box-shadow .15s ease; }
+.lg-resto:hover:not([disabled]) { transform: translateY(-2px); box-shadow: var(--lg-ombre-l); }
+.lg-resto[disabled] { opacity: .7; cursor: progress; }
+.lg-resto-apercu, .lg-resto-fantome { cursor: default; }
+.lg-resto-photo { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 10; background: linear-gradient(145deg, #fbe5d9, #f3ece3); color: var(--lg-orange); overflow: hidden; }
+.lg-resto-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lg-resto-vide { display: flex; opacity: .8; }
+.lg-resto-corps { display: flex; align-items: center; gap: 12px; padding: 14px 16px 16px; }
+.lg-resto-texte { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.lg-resto-nom { font-family: var(--lg-titre); font-weight: 800; font-size: 19px; line-height: 1.2; color: var(--lg-nuit); overflow-wrap: anywhere; }
+.lg-resto-lieu { display: flex; align-items: flex-start; gap: 6px; font-size: 14px; line-height: 1.35; color: var(--lg-texte-2); }
+.lg-resto-lieu svg { flex: 0 0 auto; margin-top: 2px; color: var(--lg-orange); }
+.lg-resto-fleche { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; background: var(--lg-orange-doux); color: var(--lg-orange); display: flex; align-items: center; justify-content: center; }
+.lg-resto-apercu .lg-resto-fleche { display: none; }
+
+/* Plat sans photo (remplace l'ancien emoji) */
+.lg-plat-vide { display: flex; align-items: center; justify-content: center; color: var(--lg-orange); opacity: .75; }
+.lg-plat[data-indispo="true"] .lg-plat-vide { filter: grayscale(1); opacity: .45; }
+.lg-rang-icone { width: 38px; height: 38px; border-radius: 12px; background: var(--lg-blanc); color: var(--lg-orange); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+/* Profil du restaurant (réglages du gérant) */
+.lg-profil-apercu { margin-top: 18px; display: grid; gap: 8px; }
+.lg-profil-apercu .lg-resto { max-width: 420px; }
+.lg-retirer-photo { border: 0; background: none; color: var(--lg-rouge); font-weight: 600; font-size: 13px; cursor: pointer; padding: 6px 0; justify-self: start; display: inline-flex; gap: 6px; align-items: center; }
+.lg-message-ok { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--lg-vert-doux); color: var(--lg-vert); font-weight: 600; font-size: 14px; }
+
+/* Squelettes de chargement de la liste */
+.lg-resto-fantome .lg-squelette { aspect-ratio: auto; display: block; border-radius: 8px; }
+.lg-resto-fantome .lg-resto-photo.lg-squelette { aspect-ratio: 16 / 10; border-radius: 0; }
