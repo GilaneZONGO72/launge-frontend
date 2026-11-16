@@ -8,6 +8,7 @@ import Suivi from "./client/Suivi";
 import EspaceGerant from "./restaurant/EspaceGerant";
 import ConnexionCuisine from "./cuisine/ConnexionCuisine";
 import VueCuisine from "./cuisine/VueCuisine";
+import ListeRestaurants from "./restaurants/ListeRestaurants";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
