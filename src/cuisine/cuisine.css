@@ -1,0 +1,65 @@
+/* Cuisine : tableau en 3 colonnes et connexion du cuisinier. Utilise design/tokens.css. */
+.lg-kds { display: grid; gap: 14px; }
+.lg-kds-fermer { border: 0; background: none; color: inherit; cursor: pointer; padding: 6px; display: flex; }
+
+/* Téléphone : une colonne à la fois */
+.lg-kds-onglets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lg-kds-onglet { position: relative; min-height: 60px; padding: 8px 6px; border: 1px solid var(--lg-bordure); border-radius: 16px; background: var(--lg-blanc); color: var(--lg-texte-2); cursor: pointer; display: grid; gap: 2px; justify-items: center; align-content: center; font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; }
+.lg-kds-onglet strong { font-family: var(--lg-titre); font-size: 20px; line-height: 1; color: var(--lg-nuit); }
+.lg-kds-onglet[aria-pressed="true"] { background: var(--lg-nuit); border-color: var(--lg-nuit); color: #fff; }
+.lg-kds-onglet[aria-pressed="true"] strong { color: #fff; }
+.lg-kds-onglet[data-alerte="true"]::after { content: ""; position: absolute; top: 8px; right: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--lg-orange); box-shadow: 0 0 0 3px var(--lg-blanc); }
+.lg-kds-colonnes { display: grid; }
+.lg-kds-col { display: none; align-content: start; gap: 12px; }
+.lg-kds-col[data-actif="true"] { display: grid; }
+.lg-kds-col-tete { display: none; }
+.lg-kds-vide { text-align: center; color: var(--lg-texte-3); font-weight: 600; padding: 36px 12px; border: 2px dashed var(--lg-bordure); border-radius: 20px; }
+
+/* Grand écran : les 3 colonnes côte à côte */
+@media (min-width: 900px) {
+  .lg-kds-onglets { display: none; }
+  .lg-kds-colonnes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .lg-kds-col { display: grid; background: rgba(17, 24, 39, .045); border-radius: 22px; padding: 14px; min-height: 280px; }
+  .lg-kds-col-tete { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 4px; }
+  .lg-kds-col-tete h2 { font-size: 17px; }
+  .lg-kds-compte { min-width: 30px; height: 30px; padding: 0 9px; border-radius: 15px; background: var(--lg-nuit); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--lg-titre); font-weight: 800; font-size: 14px; }
+}
+
+/* Un ticket = une commande */
+.lg-ticket { background: var(--lg-blanc); border-radius: 20px; padding: 14px; box-shadow: var(--lg-ombre-m); border-top: 5px solid var(--lg-orange); display: grid; gap: 12px; }
+.lg-ticket[data-col="acceptee"] { border-top-color: var(--lg-nuit); }
+.lg-ticket[data-col="pret"] { border-top-color: var(--lg-vert); }
+.lg-ticket[data-neuf="true"] { animation: lg-neuf 1.1s ease-out 4; box-shadow: 0 0 0 3px var(--lg-orange), var(--lg-ombre-m); }
+@keyframes lg-neuf { 50% { transform: scale(1.015); } }
+.lg-ticket-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lg-ticket-table { font-family: var(--lg-titre); font-weight: 800; font-size: 22px; line-height: 1.1; color: var(--lg-nuit); }
+.lg-delai { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--lg-ivoire); color: var(--lg-texte-2); white-space: nowrap; }
+.lg-delai[data-niveau="alerte"] { background: var(--lg-orange-doux); color: #c4521f; }
+.lg-delai[data-niveau="retard"] { background: var(--lg-rouge); color: #fff; }
+.lg-ticket-lignes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lg-ticket-lignes li { display: flex; gap: 10px; align-items: baseline; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.lg-ticket-qte { font-family: var(--lg-titre); font-weight: 800; font-size: 20px; color: var(--lg-orange); min-width: 34px; }
+.lg-ticket-action { min-height: 54px; font-size: 16px; border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .lg-ticket[data-neuf="true"] { animation: none; } .lg-point { animation: none; } }
+
+/* Écran du cuisinier */
+.lg-cuisine-haut { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--lg-nuit); color: #fff; }
+.lg-cuisine-logo { width: 42px; height: 42px; border-radius: 13px; background: var(--lg-orange); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.lg-cuisine-nom { font-family: var(--lg-titre); font-weight: 800; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-cuisine-sous { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255, 255, 255, .7); }
+.lg-point { width: 8px; height: 8px; border-radius: 50%; background: #3ddc97; animation: lg-point 2s ease-in-out infinite; }
+@keyframes lg-point { 50% { opacity: .35; } }
+.lg-cuisine-btn { width: 44px; height: 44px; border-radius: 14px; border: 0; background: rgba(255, 255, 255, .12); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto; }
+.lg-cuisine-btn[aria-pressed="true"] { background: var(--lg-rouge); }
+.lg-cuisine-contenu { width: 100%; max-width: 1360px; margin: 0 auto; padding: 16px 16px 48px; }
+
+/* Connexion du cuisinier */
+.lg-conn { display: grid; place-items: center; padding: 20px 16px; }
+.lg-conn-carte { width: 100%; max-width: 420px; display: grid; gap: 22px; }
+.lg-conn-tete { text-align: center; }
+.lg-conn-logo { width: 68px; height: 68px; border-radius: 22px; background: var(--lg-orange); color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 10px 24px rgba(244, 119, 69, .35); }
+.lg-conn-tete p { margin: 8px 0 0; color: var(--lg-texte-2); }
+.lg-conn-form { display: grid; gap: 16px; background: var(--lg-blanc); border-radius: var(--lg-rayon-l); padding: 22px; box-shadow: var(--lg-ombre-m); }
+.lg-mdp { position: relative; display: block; }
+.lg-mdp .lg-input { padding-right: 52px; }
+.lg-mdp button { position: absolute; right: 4px; top: 4px; width: 40px; height: 40px; border: 0; background: none; color: var(--lg-texte-3); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
