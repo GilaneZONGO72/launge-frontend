@@ -8,7 +8,7 @@ function PhotoPlat({ plat }) {
   if (plat.image_url && !erreur) {
     return <img src={plat.image_url} alt={plat.nom} loading="lazy" onError={() => setErreur(true)} />;
   }
-  return <span className="lg-plat-emoji" aria-hidden="true">{plat.emoji || "🍽️"}</span>;
+  return <span className="lg-plat-vide" aria-hidden="true"><Icon nom="couverts" taille={44} /></span>;
 }
 
 function CartePlat({ plat, quantite, onModifier }) {
