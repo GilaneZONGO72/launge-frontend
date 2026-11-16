@@ -510,6 +510,8 @@ useEffect(() => {
   const refuserResto = async (id) => { await fetch(`${API}/api/admin/restaurants/${id}/refuser`, { method: "PUT" }); chargerRestosAdmin(); };
   const supprimerResto = async (id) => { if (!confirm("Supprimer ce restaurant ?")) return; await fetch(`${API}/api/admin/restaurants/${id}`, { method: "DELETE" }); chargerRestosAdmin(); };
   // ── VUE CUISINE SÉPARÉE ──
+  if (vue === "login-cuisine") return <ConnexionCuisine onConnecte={(r) => { setRestoCuisine(r); setVue("vue-cuisine"); }} onRetour={() => setVue("accueil")} />;
+  if (vue === "vue-cuisine") return <VueCuisine restaurant={restoCuisine} commandes={commandesCuisine} audioRef={audioRef} onQuitter={() => { setRestoCuisine(null); setCommandesCuisine([]); setNouvellesCommandes(0); setVue("accueil"); }} />;
   if (vue === "login-cuisine") return (
     <div style={{
       minHeight: "100vh",
