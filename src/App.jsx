@@ -6,6 +6,8 @@ import MenuClient from "./client/MenuClient";
 import Paiement from "./client/Paiement";
 import Suivi from "./client/Suivi";
 import EspaceGerant from "./restaurant/EspaceGerant";
+import ConnexionCuisine from "./cuisine/ConnexionCuisine";
+import VueCuisine from "./cuisine/VueCuisine";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
