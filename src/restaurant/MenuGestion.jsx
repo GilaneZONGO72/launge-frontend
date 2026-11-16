@@ -5,7 +5,7 @@ import { Champ, Feuille, Interrupteur } from "./Champs";
 import { fcfa } from "./calculs";
 
 const API = "https://launge-backend-production.up.railway.app";
-const VIDE = { nom: "", prix: "", categorie: "Plats", emoji: "🍽️", stock: "", seuil_alerte: "", image_url: "", disponible: true };
+const VIDE = { nom: "", prix: "", categorie: "Plats", stock: "", seuil_alerte: "", image_url: "", disponible: true };
 const CATEGORIES_SUGGEREES = ["Plats", "Boissons", "Entrées", "Desserts"];
 
 async function appel(url, options) {
@@ -39,14 +39,14 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
     if (b.prix === "" || isNaN(Number(b.prix)) || Number(b.prix) < 0) return setErreur("Indiquez un prix valide.");
     setEnvoi(true); setErreur("");
     const corps = {
-      nom: b.nom.trim(), prix: Number(b.prix), categorie: (b.categorie || "Plats").trim(), emoji: b.emoji || "🍽️",
+      nom: b.nom.trim(), prix: Number(b.prix), categorie: (b.categorie || "Plats").trim(),
       stock: b.stock === "" ? 0 : Number(b.stock), seuil_alerte: b.seuil_alerte === "" ? 0 : Number(b.seuil_alerte),
       image_url: b.image_url || null, disponible: b.disponible !== false,
     };
     try {
       const data = edition
         ? await appel(`${API}/api/menu/${b.id}`, { method: "PUT", body: JSON.stringify(corps) })
-        : await appel(`${API}/api/menu`, { method: "POST", body: JSON.stringify({ ...corps, restaurant_id: gerantId }) });
+        : await appel(`${API}/api/menu`, { method: "POST", body: JSON.stringify({ ...corps, emoji: "", restaurant_id: gerantId }) });
       onEnregistre(data, edition);
     } catch (e) { setErreur(e.message); setEnvoi(false); }
   };
@@ -67,10 +67,7 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
       </label>
       <div className="lg-form">
         <Champ label="Nom du plat"><input className="lg-input" value={b.nom} onChange={(e) => maj("nom", e.target.value)} placeholder="Ex : Ndolé spécial" autoFocus /></Champ>
-        <div className="lg-form-duo">
-          <Champ label="Prix (FCFA)"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.prix} onChange={(e) => maj("prix", e.target.value)} placeholder="2500" /></Champ>
-          <Champ label="Emoji"><input className="lg-input" value={b.emoji} onChange={(e) => maj("emoji", e.target.value)} maxLength={4} /></Champ>
-        </div>
+        <Champ label="Prix (FCFA)"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.prix} onChange={(e) => maj("prix", e.target.value)} placeholder="2500" /></Champ>
         <Champ label="Catégorie">
           <input className="lg-input" list="lg-categories" value={b.categorie} onChange={(e) => maj("categorie", e.target.value)} />
           <datalist id="lg-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
@@ -133,7 +130,7 @@ export default function MenuGestion({ gerant, menu, setMenu }) {
             return (
               <article className="lg-plat" key={p.id} data-indispo={p.disponible === false || epuise}>
                 <button className="lg-plat-photo lg-plat-bouton" onClick={() => setFeuille(p)} aria-label={`Modifier ${p.nom}`}>
-                  {p.image_url ? <img src={p.image_url} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} /> : <span className="lg-plat-emoji">{p.emoji || "🍽️"}</span>}
+                  {p.image_url ? <img src={p.image_url} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} /> : <span className="lg-plat-vide"><Ico nom="couverts" taille={44} /></span>}
                   <div className="lg-plat-badges">
                     {p.disponible === false && <span className="lg-badge lg-badge-rouge">Masqué</span>}
                     {epuise && <span className="lg-badge lg-badge-rouge">Épuisé</span>}
