@@ -6,7 +6,8 @@ import Ico from "./IconeGerant";
 import Dashboard from "./Dashboard";
 import MenuGestion from "./MenuGestion";
 import Reglages from "./Reglages";
-import { Commandes, Cuisine } from "./Commandes";
+import { Commandes } from "./Commandes";
+import TableauCuisine from "../cuisine/TableauCuisine";
 
 const ONGLETS = [
   { id: "accueil", nom: "Accueil", icone: "accueil" },
@@ -31,7 +32,9 @@ export default function EspaceGerant(p) {
   }, [onglet, gerantId]);
 
   const ouvrir = (id) => { setOnglet(id); if (id === "cuisine") p.setNouvellesCommandes(0); window.scrollTo(0, 0); };
-  const enCours = p.commandesCuisine.length;
+  // La liste garde un moment les commandes déjà servies : on ne les compte pas.
+  const enCours = p.commandesCuisine.filter((c) => c.statut !== "servi").length;
+  const aFaire = p.commandesCuisine.filter((c) => c.statut === "en_cours" || c.statut === "acceptee").length;
 
   return (
     <div className="lg-page lg-appli">
@@ -41,7 +44,7 @@ export default function EspaceGerant(p) {
         {ONGLETS.map((o) => (
           <button key={o.id} className="lg-nav-item" aria-current={onglet === o.id ? "page" : undefined} onClick={() => ouvrir(o.id)}>
             <span className="lg-nav-icone"><Ico nom={o.icone} taille={22} />
-              {o.id === "cuisine" && (p.nouvellesCommandes > 0 || enCours > 0) && <span className="lg-nav-pastille">{p.nouvellesCommandes > 0 ? p.nouvellesCommandes : enCours}</span>}
+              {o.id === "cuisine" && (p.nouvellesCommandes > 0 || aFaire > 0) && <span className="lg-nav-pastille">{p.nouvellesCommandes > 0 ? p.nouvellesCommandes : aFaire}</span>}
             </span>
             <span>{o.nom}</span>
           </button>
@@ -57,7 +60,7 @@ export default function EspaceGerant(p) {
           {onglet === "accueil" && <Dashboard gerant={gerant} menu={p.menu} stats={p.stats} nbEnCours={enCours} allerCuisine={() => ouvrir("cuisine")} />}
           {onglet === "menu" && <MenuGestion gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
           {onglet === "commandes" && <Commandes commandes={p.commandes} />}
-          {onglet === "cuisine" && <Cuisine commandesCuisine={p.commandesCuisine} changerStatut={p.changerStatut} />}
+          {onglet === "cuisine" && <TableauCuisine commandes={p.commandesCuisine} />}
           {onglet === "reglages" && <Reglages {...p} />}
         </main>
       </div>
