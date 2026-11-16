@@ -1,10 +1,11 @@
 // Calculs du tableau de bord (fonctions pures, sans effet de bord).
 export const STATUTS = {
-  en_cours: { label: "En préparation", classe: "lg-badge-orange" },
+  en_cours: { label: "Nouvelle", classe: "lg-badge-rouge" },
+  acceptee: { label: "En préparation", classe: "lg-badge-orange" },
   pret: { label: "Prête", classe: "lg-badge-vert" },
   servi: { label: "Servie", classe: "" },
 };
-export const STATUT_SUIVANT = { en_cours: "pret", pret: "servi" };
+export const STATUT_SUIVANT = { en_cours: "acceptee", acceptee: "pret", pret: "servi" };
 
 // « Poulet rôti » et « poulet rôti  » comptent pour le même plat.
 export const cle = (nom) => String(nom || "").trim().toLowerCase().replace(/\s+/g, " ");
