@@ -53,7 +53,7 @@ export default function Dashboard({ gerant, menu, stats, nbEnCours, allerCuisine
           <span className="lg-badge lg-badge-vert">Tout est en stock</span>
         ) : alertes.map((i) => (
           <div className="lg-rang" key={i.id}>
-            <span style={{ fontSize: 22 }}>{i.emoji || "🍽️"}</span>
+            <span className="lg-rang-icone"><Ico nom="couverts" taille={20} /></span>
             <span style={{ flex: 1, fontWeight: 600 }}>{i.nom}</span>
             <span className={`lg-badge ${i.stock <= 0 ? "lg-badge-rouge" : "lg-badge-orange"}`}>{i.stock <= 0 ? "Épuisé" : `${i.stock} restants`}</span>
           </div>
