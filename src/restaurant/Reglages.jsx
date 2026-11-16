@@ -8,6 +8,7 @@ export default function Reglages({ gerant, recrutement, setRecrutement, sauvegar
   return (
     <div className="lg-pile">
       <h1 className="lg-titre lg-h1">Réglages</h1>
+       <Profil gerant={gerant} /> 
 
       <section className="lg-bloc">
         <h2 className="lg-bloc-titre"><Ico nom="flamme" taille={18} /> Accès cuisine</h2>
