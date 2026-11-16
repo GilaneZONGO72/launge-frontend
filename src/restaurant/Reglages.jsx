@@ -2,7 +2,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import Ico from "./IconeGerant";
 import { Champ, Interrupteur } from "./Champs";
-
+import Profil from "./Profil";
 export default function Reglages({ gerant, recrutement, setRecrutement, sauvegarderRecrutement, codeCuisine, nouveauCodeCuisine, setNouveauCodeCuisine, sauvegarderCodeCuisine, nbTables, setNbTables, lienQR, onQuitter }) {
   const [voirCode, setVoirCode] = useState(false);
   return (
