@@ -4,20 +4,21 @@ import "./client.css";
 
 const API = "https://launge-backend-production.up.railway.app";
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
-
-// Le serveur gère 3 états : en_cours, pret, servi. « Reçue » est acquise dès que la commande existe.
+// États côté serveur : en_cours (reçue), acceptee (en préparation), pret, servi.
 const ETAPES = [
-  { cle: "recue", nom: "Commande reçue", sous: "Le restaurant a bien reçu votre commande", icone: "recu" },
-  { cle: "en_cours", nom: "En préparation", sous: "La cuisine prépare votre commande", icone: "flamme" },
+  { cle: "recue", nom: "Commande reçue", sous: "Le restaurant va l'accepter dans un instant", icone: "recu" },
+  { cle: "acceptee", nom: "En préparation", sous: "La cuisine prépare votre commande", icone: "flamme" },
   { cle: "pret", nom: "Prête", sous: "Votre commande est prête", icone: "cloche" },
   { cle: "servi", nom: "Servie", sous: "Bon appétit !", icone: "sourire" },
 ];
-const RANG = { en_cours: 1, pret: 2, servi: 4 };
+const RANG = { en_cours: 0, acceptee: 1, pret: 2, servi: 4 };
 const TITRES = {
-  en_cours: ["Votre commande est en préparation", "Nous vous prévenons dès qu'elle est prête."],
+  en_cours: ["Commande envoyée", "Le restaurant va la prendre en charge."],
+  acceptee: ["Votre commande est en préparation", "Nous vous prévenons dès qu'elle est prête."],
   pret: ["Votre commande est prête !", "Elle arrive à votre table."],
   servi: ["Bon appétit !", "Votre commande a été servie."],
 };
+const ICONE_HEROS = { en_cours: "recu", acceptee: "flamme", pret: "cloche", servi: "sourire" };
 
 export default function Suivi({ reference, onAccueil, intervalleMs = 5000 }) {
   const [etat, setEtat] = useState("chargement"); // chargement | ok | introuvable
