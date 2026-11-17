@@ -9,6 +9,9 @@ import EspaceGerant from "./restaurant/EspaceGerant";
 import ConnexionCuisine from "./cuisine/ConnexionCuisine";
 import VueCuisine from "./cuisine/VueCuisine";
 import ListeRestaurants from "./restaurants/ListeRestaurants";
+import Accueil from "./accueil/Accueil";
+import ConnexionCompte from "./comptes/ConnexionCompte";
+import Inscription from "./comptes/Inscription";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
@@ -512,6 +515,36 @@ useEffect(() => {
   const supprimerResto = async (id) => { if (!confirm("Supprimer ce restaurant ?")) return; await fetch(`${API}/api/admin/restaurants/${id}`, { method: "DELETE" }); chargerRestosAdmin(); };
   // ── VUE CUISINE SÉPARÉE ──
   if (vue === "login-cuisine") return <ConnexionCuisine onConnecte={(r) => { setRestoCuisine(r); setVue("vue-cuisine"); }} onRetour={() => setVue("accueil")} />;
+  // ── ACCUEIL, CONNEXIONS, INSCRIPTION (nouveau design) ──
+  if (vue === "accueil") return (
+    <Accueil
+      onClient={() => setVue("liste-restos")}
+      onGerant={() => setVue("login-gerant")}
+      onInscription={() => setVue("inscription")}
+      onCuisine={() => setVue("login-cuisine")}
+    />
+  );
+  if (vue === "login-gerant") return (
+    <ConnexionCompte
+      chemin="/api/restaurants/connexion"
+      titre="Espace restaurateur"
+      sousTitre="Connectez-vous pour gérer votre restaurant."
+      onConnecte={(data) => { setGerant(data.restaurant); chargerMenu(data.restaurant.id); chargerCommandes(data.restaurant.id); setVue("gerant"); }}
+      onRetour={() => setVue("accueil")}
+      onInscription={() => setVue("inscription")}
+    />
+  );
+  if (vue === "inscription") return <Inscription onRetour={() => setVue("login-gerant")} onTerminee={() => setVue("login-gerant")} />;
+  if (vue === "login-admin") return (
+    <ConnexionCompte
+      chemin="/api/admin/connexion"
+      titre="Administration"
+      sousTitre="Accès réservé à l'équipe Launge."
+      badge={{ icone: "bouclier", texte: "Accès restreint" }}
+      onConnecte={(data) => { setAdmin(data.token); chargerRestosAdmin(); setVue("admin-dashboard"); }}
+      onRetour={() => setVue("accueil")}
+    />
+  );
   if (vue === "vue-cuisine") return <VueCuisine restaurant={restoCuisine} commandes={commandesCuisine} audioRef={audioRef} onQuitter={() => { setRestoCuisine(null); setCommandesCuisine([]); setNouvellesCommandes(0); setVue("accueil"); }} />;
   if (vue === "login-cuisine") return (
     <div style={{
