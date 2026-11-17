@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "../design/tokens.css";
 import "../client/client.css";
 import "../restaurant/restaurant.css";
 import "./cuisine.css";
+import "../comptes/comptes.css";
 import Ico from "./IconesCuisine";
 
 const API = "https://launge-backend-production.up.railway.app";
@@ -14,6 +15,18 @@ export default function ConnexionCuisine({ onConnecte, onRetour }) {
   const [voir, setVoir] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [resto, setResto] = useState(null); // null | "cherche" | "introuvable" | { nom }
+
+  // Dès que le code restaurant est complet (LNG- + 6 caractères), on affiche le nom du restaurant pour confirmer qu'on est au bon endroit.
+  useEffect(() => {
+    if (!/^LNG-[A-Z0-9]{6}$/.test(code)) { setResto(null); return undefined; }
+    const ctrl = new AbortController();
+    setResto("cherche");
+    fetch(`${API}/api/restaurants/code/${encodeURIComponent(code)}`, { signal: ctrl.signal })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); setResto(r.ok && d.nom ? { nom: d.nom } : "introuvable"); })
+      .catch((e) => { if (e.name !== "AbortError") setResto(null); });
+    return () => ctrl.abort();
+  }, [code]);
 
   const valider = async (e) => {
     e.preventDefault();
@@ -49,6 +62,9 @@ export default function ConnexionCuisine({ onConnecte, onRetour }) {
             <label className="lg-champ-label" htmlFor="cu-code">Code restaurant</label>
             <input id="cu-code" className="lg-input" placeholder="LNG-XXXXX" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
               autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} autoFocus />
+              {resto === "cherche" && <span className="lg-cp-bande lg-cp-bande-attente" role="status">Recherche du restaurant…</span>}
+              {resto === "introuvable" && <span className="lg-cp-bande lg-cp-bande-ko" role="status"><Ico nom="alerte" taille={16} /> Aucun restaurant avec ce code</span>}
+              {resto && resto.nom && <span className="lg-cp-bande lg-cp-bande-ok" role="status"><Ico nom="check" taille={16} /> {resto.nom}</span>}
           </div>
           <div className="lg-champ">
             <label className="lg-champ-label" htmlFor="cu-mdp">Code cuisine</label>
