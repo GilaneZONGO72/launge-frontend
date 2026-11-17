@@ -1,0 +1,32 @@
+/* Page d'accueil. Utilise design/tokens.css et comptes/comptes.css. */
+.lg-ac { background: var(--lg-ivoire); }
+.lg-ac-cadre { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.lg-ac-hero { background-color: var(--lg-nuit); background-size: cover; background-position: center; color: #fff; padding-bottom: 56px; }
+.lg-ac-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0; }
+.lg-ac-bouton-verre { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .14); backdrop-filter: blur(10px); color: #fff; font-family: var(--lg-titre); font-weight: 700; font-size: 14px; }
+.lg-ac-bouton-verre:hover { background: rgba(255, 255, 255, .24); }
+.lg-ac-hero-texte { max-width: 560px; padding-top: 56px; display: grid; gap: 16px; justify-items: start; }
+.lg-ac-pastille { padding: 6px 14px; border-radius: 999px; background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.lg-ac-hero-texte h1 { color: #fff; font-size: clamp(32px, 7vw, 52px); line-height: 1.05; }
+.lg-ac-hero-texte p { margin: 0; font-size: 17px; color: rgba(255, 255, 255, .88); max-width: 460px; }
+.lg-ac-cta { min-height: 56px; padding: 0 26px; font-size: 16px; margin-top: 6px; }
+
+.lg-ac-section { padding: 48px 0 0; }
+.lg-ac-h2 { font-size: clamp(22px, 4.5vw, 30px); line-height: 1.15; margin-bottom: 18px; }
+.lg-ac-etapes, .lg-ac-atouts { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .lg-ac-etapes { grid-template-columns: repeat(3, minmax(0, 1fr)); } .lg-ac-atouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .lg-ac-atouts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.lg-ac-etape, .lg-ac-atout { position: relative; background: var(--lg-blanc); border-radius: var(--lg-rayon-l); padding: 22px; box-shadow: var(--lg-ombre-m); display: grid; gap: 8px; align-content: start; }
+.lg-ac-etape p, .lg-ac-atout p { margin: 0; color: var(--lg-texte-2); }
+.lg-ac-icone { width: 46px; height: 46px; border-radius: 14px; background: var(--lg-orange-doux); color: var(--lg-orange); display: flex; align-items: center; justify-content: center; }
+.lg-ac-icone-nuit { background: var(--lg-nuit); color: #fff; }
+.lg-ac-num { position: absolute; top: 18px; right: 20px; font-family: var(--lg-titre); font-weight: 800; font-size: 28px; color: var(--lg-bordure); }
+
+.lg-ac-resto { margin: 48px 0 0; padding: 28px 24px; border-radius: var(--lg-rayon-l); background: var(--lg-nuit); color: #fff; display: grid; gap: 18px; }
+.lg-ac-resto p { margin: 8px 0 0; color: rgba(255, 255, 255, .75); max-width: 520px; }
+.lg-ac-resto-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.lg-ac-resto-actions .lg-btn { min-height: 50px; padding: 0 22px; }
+@media (min-width: 800px) { .lg-ac-resto { grid-template-columns: 1fr auto; align-items: center; padding: 34px 36px; } }
+
+.lg-ac-pied { margin-top: 48px; padding: 24px 0 32px; border-top: 1px solid var(--lg-bordure); }
+.lg-ac-pied-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
