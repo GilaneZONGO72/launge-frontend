@@ -12,6 +12,7 @@ import ListeRestaurants from "./restaurants/ListeRestaurants";
 import Accueil from "./accueil/Accueil";
 import ConnexionCompte from "./comptes/ConnexionCompte";
 import Inscription from "./comptes/Inscription";
+import EspaceAdmin from "./admin/EspaceAdmin";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
@@ -639,7 +640,7 @@ useEffect(() => {
       </div>
     </div>
   );
-
+if (vue === "admin-dashboard") return <EspaceAdmin onQuitter={() => { setAdmin(null); setVue("accueil"); }} />;
   if (vue === "admin-dashboard") {
     const enAttente = restosAdmin.filter(r => r.statut === "en_attente");
     const valides = restosAdmin.filter(r => r.statut === "valide");
