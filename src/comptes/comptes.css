@@ -1,0 +1,52 @@
+/* Accueil, connexions et inscription. Utilise design/tokens.css. */
+
+/* Logo */
+.lg-marque { display: inline-flex; align-items: center; gap: 10px; color: var(--lg-nuit); }
+.lg-marque-clair { color: #fff; }
+.lg-marque-logo { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: var(--lg-orange); color: #fff; box-shadow: 0 6px 16px rgba(244, 119, 69, .35); }
+.lg-marque-nom { font-family: var(--lg-titre); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+
+/* iOS / Chrome : les champs remplis automatiquement ne deviennent plus jaunes ni bleus */
+.lg-page .lg-input:-webkit-autofill,
+.lg-page .lg-input:-webkit-autofill:hover,
+.lg-page .lg-input:-webkit-autofill:focus,
+.lg-page .lg-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: var(--lg-texte) !important;
+  caret-color: var(--lg-texte);
+  transition: background-color 600000s 0s;
+}
+
+/* Page de connexion / inscription */
+.lg-cp { min-height: 100svh; display: grid; place-items: center; padding: 20px 16px 32px; background: var(--lg-ivoire); }
+.lg-cp-boite { width: 100%; max-width: 430px; display: grid; gap: 20px; }
+.lg-cp-haut { display: flex; align-items: center; justify-content: space-between; }
+.lg-cp-tete { text-align: center; display: grid; gap: 10px; justify-items: center; }
+.lg-cp-tete p { margin: 0; color: var(--lg-texte-2); max-width: 340px; }
+.lg-cp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--lg-orange-doux); color: #c4521f; font-size: 12px; font-weight: 700; }
+.lg-cp-carte { display: grid; gap: 16px; background: var(--lg-blanc); border-radius: var(--lg-rayon-l); padding: 24px 22px; box-shadow: var(--lg-ombre-m); }
+.lg-cp-pied { text-align: center; color: var(--lg-texte-2); font-size: 14px; }
+.lg-cp-lien { border: 0; background: none; padding: 4px; color: var(--lg-orange); font: inherit; font-weight: 700; cursor: pointer; }
+.lg-cp-lien:hover { text-decoration: underline; }
+.lg-champ-erreur { display: flex; gap: 6px; align-items: center; color: var(--lg-rouge); font-size: 13px; font-weight: 500; }
+.lg-input[aria-invalid="true"] { border-color: var(--lg-rouge); }
+.lg-cp-mdp { position: relative; display: block; }
+.lg-cp-mdp .lg-input { padding-right: 52px; }
+.lg-cp-mdp button { position: absolute; right: 4px; top: 4px; width: 40px; height: 40px; border: 0; background: none; color: var(--lg-texte-3); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+.lg-cp-bande { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+.lg-cp-bande-ok { background: var(--lg-vert-doux); color: var(--lg-vert); }
+.lg-cp-bande-ko { background: var(--lg-rouge-doux); color: #a63a3a; }
+.lg-cp-bande-attente { background: var(--lg-ivoire); color: var(--lg-texte-3); font-weight: 500; }
+
+/* Progression de l'inscription */
+.lg-ins-etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.lg-ins-etapes span { height: 5px; border-radius: 3px; background: var(--lg-bordure); }
+.lg-ins-etapes span[data-fait="true"] { background: var(--lg-orange); }
+.lg-etape-titre { display: grid; gap: 2px; }
+.lg-etape-titre small { color: var(--lg-texte-3); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* Écran de succès */
+.lg-succes-rond { width: 64px; height: 64px; border-radius: 50%; background: var(--lg-vert-doux); color: var(--lg-vert); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+.lg-code-boite { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-radius: 16px; background: var(--lg-ivoire); border: 1.5px dashed var(--lg-bordure); }
+.lg-code-boite strong { font-family: var(--lg-titre); font-size: 22px; letter-spacing: .06em; }
