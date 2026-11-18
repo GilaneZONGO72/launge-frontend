@@ -2,16 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import "../design/tokens.css";
 import "../client/client.css";
 import "./restaurant.css";
-import Ico from "./IconeGerant";
+import Ico from "../stock/IconesStock";
 import Dashboard from "./Dashboard";
 import MenuGestion from "./MenuGestion";
 import Reglages from "./Reglages";
 import { Commandes } from "./Commandes";
 import TableauCuisine from "../cuisine/TableauCuisine";
+import EspaceStock from "../stock/EspaceStock";
+import { rechargerMenu } from "../stock/api";
+import { enAlerte, niveau } from "../stock/outils";
 
 const ONGLETS = [
   { id: "accueil", nom: "Accueil", icone: "accueil" },
   { id: "menu", nom: "Menu", icone: "couverts" },
+  { id: "stock", nom: "Stock", icone: "boite" },
   { id: "commandes", nom: "Commandes", icone: "liste" },
   { id: "cuisine", nom: "Cuisine", icone: "flamme" },
   { id: "reglages", nom: "Réglages", icone: "reglages" },
@@ -31,6 +35,40 @@ export default function EspaceGerant(p) {
     if (onglet === "commandes") chargeurs.current.chargerCommandes(gerantId);
   }, [onglet, gerantId]);
 
+  // Le stock baisse à chaque commande : on relit le menu toutes les 30 secondes (pause quand l'onglet du navigateur est caché).
+  useEffect(() => {
+    if (!gerantId) return undefined;
+    const t = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      rechargerMenu(gerantId, (m) => chargeurs.current.setMenu(m)).catch(() => {});
+    }, 30000);
+    return () => clearInterval(t);
+  }, [gerantId]);
+
+  // Alerte de seuil : quand un plat passe sous son seuil (ou s'épuise), un bandeau le signale.
+  const [alerteStock, setAlerteStock] = useState(null);
+  const connues = useRef(null);
+  useEffect(() => {
+    // Tant que le menu n'est pas arrivé, on n'a rien à comparer : le premier menu chargé sert d'état de départ (pas d'alerte pour l'existant).
+    if (!p.menu || p.menu.length === 0) return;
+    const maintenant = new Map(enAlerte(p.menu).map((x) => [x.id, niveau(x)]));
+    if (connues.current === null) { connues.current = maintenant; return; }
+    const nouveaux = [...maintenant].filter(([id, n]) => connues.current.get(id) !== n && (n === "epuise" || connues.current.get(id) !== "epuise"));
+    connues.current = maintenant;
+    if (nouveaux.length) {
+      const [id, n] = nouveaux[0];
+      const plat = p.menu.find((x) => x.id === id);
+      const plus = nouveaux.length > 1 ? ` (et ${nouveaux.length - 1} autre${nouveaux.length > 2 ? "s" : ""})` : "";
+      setAlerteStock({ texte: n === "epuise" ? `${plat.nom} est épuisé${plus}` : `Stock bas : ${plat.nom}, il en reste ${plat.stock}${plus}` });
+    }
+  }, [p.menu]);
+  useEffect(() => {
+    if (!alerteStock) return undefined;
+    const t = setTimeout(() => setAlerteStock(null), 10000);
+    return () => clearTimeout(t);
+  }, [alerteStock]);
+  const nbAlertes = enAlerte(p.menu).length;
+
   const ouvrir = (id) => { setOnglet(id); if (id === "cuisine") p.setNouvellesCommandes(0); window.scrollTo(0, 0); };
   // La liste garde un moment les commandes déjà servies : on ne les compte pas.
   const enCours = p.commandesCuisine.filter((c) => c.statut !== "servi").length;
@@ -45,6 +83,7 @@ export default function EspaceGerant(p) {
           <button key={o.id} className="lg-nav-item" aria-current={onglet === o.id ? "page" : undefined} onClick={() => ouvrir(o.id)}>
             <span className="lg-nav-icone"><Ico nom={o.icone} taille={22} />
               {o.id === "cuisine" && (p.nouvellesCommandes > 0 || aFaire > 0) && <span className="lg-nav-pastille">{p.nouvellesCommandes > 0 ? p.nouvellesCommandes : aFaire}</span>}
+              {o.id === "stock" && nbAlertes > 0 && <span className="lg-nav-pastille">{nbAlertes}</span>}
             </span>
             <span>{o.nom}</span>
           </button>
@@ -57,8 +96,16 @@ export default function EspaceGerant(p) {
           <button className="lg-btn lg-btn-rond" onClick={p.onQuitter} aria-label="Se déconnecter"><Ico nom="deconnexion" /></button>
         </header>
         <main className="lg-contenu">
+          {alerteStock && (
+            <div className="lg-alerte-stock" role="alert">
+              <Ico nom="alerte" taille={20} /><span>{alerteStock.texte}</span>
+              <button type="button" onClick={() => { setAlerteStock(null); ouvrir("stock"); }} aria-label="Voir le stock" style={{ width: "auto", padding: "0 12px", borderRadius: 16 }}>Voir</button>
+              <button type="button" onClick={() => setAlerteStock(null)} aria-label="Fermer l'alerte"><Ico nom="fermer" taille={16} /></button>
+            </div>
+          )}
           {onglet === "accueil" && <Dashboard gerant={gerant} menu={p.menu} stats={p.stats} nbEnCours={enCours} allerCuisine={() => ouvrir("cuisine")} />}
           {onglet === "menu" && <MenuGestion gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
+          {onglet === "stock" && <EspaceStock gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
           {onglet === "commandes" && <Commandes commandes={p.commandes} />}
           {onglet === "cuisine" && <TableauCuisine commandes={p.commandesCuisine} />}
           {onglet === "reglages" && <Reglages {...p} />}
