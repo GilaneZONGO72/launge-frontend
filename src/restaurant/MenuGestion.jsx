@@ -40,7 +40,7 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
     setEnvoi(true); setErreur("");
     const corps = {
       nom: b.nom.trim(), prix: Number(b.prix), categorie: (b.categorie || "Plats").trim(),
-      stock: b.stock === "" ? 0 : Number(b.stock), seuil_alerte: b.seuil_alerte === "" ? 0 : Number(b.seuil_alerte),
+     ...(edition ? {} : { stock: b.stock === "" ? 0 : Number(b.stock) }), seuil_alerte
       image_url: b.image_url || null, disponible: b.disponible !== false,
     };
     try {
@@ -73,10 +73,11 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
           <datalist id="lg-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
         </Champ>
         <div className="lg-form-duo">
-          <Champ label="Stock"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.stock} onChange={(e) => maj("stock", e.target.value)} placeholder="20" /></Champ>
+          {!edition && <Champ label="Stock de départ"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.stock} onChange={(e) => maj("stock", e.target.value)} placeholder="20" /></Champ>}
           <Champ label="Seuil d'alerte"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.seuil_alerte} onChange={(e) => maj("seuil_alerte", e.target.value)} placeholder="5" /></Champ>
         </div>
-        <div className="lg-ligne-inter">
+        {edition && <p className="lg-legende" style={{ margin: 0 }}>Pour changer la quantité en stock, utilisez l'onglet Stock : chaque changement y est enregistré.</p>}
+   
           <span><strong>Disponible à la commande</strong><span className="lg-champ-aide">Désactivez pour masquer temporairement le plat.</span></span>
           <Interrupteur actif={b.disponible !== false} onChange={(v) => maj("disponible", v)} label="Disponible à la commande" />
         </div>
