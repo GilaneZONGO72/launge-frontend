@@ -7,6 +7,7 @@ import Paiement from "./client/Paiement";
 import Suivi from "./client/Suivi";
 import EspaceGerant from "./restaurant/EspaceGerant";
 import ConnexionCuisine from "./cuisine/ConnexionCuisine";
+import ConnexionPersonnel from "./equipe/ConnexionPersonnel";
 import VueCuisine from "./cuisine/VueCuisine";
 import ListeRestaurants from "./restaurants/ListeRestaurants";
 import Accueil from "./accueil/Accueil";
@@ -345,8 +346,9 @@ useEffect(() => {
 
   useEffect(() => {
     if (!gerant?.id) return;
+    if (gerant.poste === "stock") return; // le poste stock n'a pas accès aux commandes
     chargerCommandesCuisine(gerant.id);
-    chargerStats(gerant.id);
+    if (!gerant.poste || gerant.poste === "manager") chargerStats(gerant.id);
     if (gerant.recrutement) setRecrutement(gerant.recrutement);
     if (gerant.code_cuisine) setCodeCuisine(gerant.code_cuisine);
     const channel = supabase.channel("cmd-gerant")
@@ -515,6 +517,17 @@ useEffect(() => {
   const refuserResto = async (id) => { await fetch(`${API}/api/admin/restaurants/${id}/refuser`, { method: "PUT" }); chargerRestosAdmin(); };
   const supprimerResto = async (id) => { if (!confirm("Supprimer ce restaurant ?")) return; await fetch(`${API}/api/admin/restaurants/${id}`, { method: "DELETE" }); chargerRestosAdmin(); };
   // ── VUE CUISINE SÉPARÉE ──
+  if (vue === "login-personnel") return (
+    <ConnexionPersonnel
+      onConnecte={(data) => {
+        setGerant({ ...data.restaurant, poste: data.poste, membre: data.nom });
+        chargerMenu(data.restaurant.id);
+        if (["manager", "caissier", "cuisinier"].includes(data.poste)) chargerCommandes(data.restaurant.id);
+        setVue("gerant");
+      }}
+      onRetour={() => setVue("login-gerant")}
+    />
+  );
   if (vue === "login-cuisine") return <ConnexionCuisine onConnecte={(r) => { setRestoCuisine(r); setVue("vue-cuisine"); }} onRetour={() => setVue("accueil")} />;
   // ── ACCUEIL, CONNEXIONS, INSCRIPTION (nouveau design) ──
   if (vue === "accueil") return (
@@ -533,6 +546,7 @@ useEffect(() => {
       onConnecte={(data) => { setGerant(data.restaurant); chargerMenu(data.restaurant.id); chargerCommandes(data.restaurant.id); setVue("gerant"); }}
       onRetour={() => setVue("accueil")}
       onInscription={() => setVue("inscription")}
+      onPersonnel={() => setVue("login-personnel")}
     />
   );
   if (vue === "inscription") return <Inscription onRetour={() => setVue("login-gerant")} onTerminee={() => setVue("login-gerant")} />;
