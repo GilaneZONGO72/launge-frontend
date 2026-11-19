@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Icon from "../design/Icon";
 import "./client.css";
+import PromoPanier from "../promos/PromoPanier";
+import useVitrine from "../promos/useVitrine";
 
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
 const MODES = [
@@ -9,9 +11,13 @@ const MODES = [
   { nom: "Espèces", sous: "À régler à la table", icone: "billets" },
 ];
 
-export default function Paiement({ menu, panier, totalPanier, onRetour, onPayer }) {
+export default function Paiement({ menu, panier, totalPanier, restoId, onRetour, onPayer }) {
   const [mode, setMode] = useState(null);
   const [envoi, setEnvoi] = useState(false);
+  const [promo, setPromo] = useState(null); // { code, remise } vérifié par le serveur
+  const [telephone, setTelephone] = useState("");
+  const vitrine = useVitrine(restoId);
+  const fidelite = vitrine && vitrine.fidelite && vitrine.fidelite.actif ? vitrine.fidelite : null;
 
   const lignes = Object.entries(panier)
     .filter(([, q]) => q > 0)
@@ -21,7 +27,7 @@ export default function Paiement({ menu, panier, totalPanier, onRetour, onPayer 
   const confirmer = async () => {
     if (!mode || envoi) return; // empêche les doubles envois
     setEnvoi(true);
-    try { await onPayer(mode); } finally { setEnvoi(false); }
+    try { await onPayer(mode, { code_promo: promo ? promo.code : undefined, telephone: fidelite ? telephone : undefined }); } finally { setEnvoi(false); }
   };
 
   return (
@@ -43,9 +49,20 @@ export default function Paiement({ menu, panier, totalPanier, onRetour, onPayer 
           ))}
         </div>
 
+        {restoId && lignes.length > 0 && <PromoPanier restaurantId={restoId} lignes={lignes} applique={promo} onChange={setPromo} />}
+
+        {fidelite && (
+          <div className="lg-promo">
+            <label className="lg-champ-label" htmlFor="lg-tel-fid" style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 14 }}>Votre téléphone (facultatif)</label>
+            <input id="lg-tel-fid" className="lg-promo-champ" style={{ width: "100%", boxSizing: "border-box", textTransform: "none", letterSpacing: 0 }} type="tel" inputMode="tel" autoComplete="tel" placeholder="6 99 00 11 22" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+            <p className="lg-legende" style={{ margin: "6px 0 0" }}>Gagnez des points à chaque commande : un cadeau vous attend après {fidelite.seuil_points} points ({fidelite.fcfa_par_point > 0 ? `1 point tous les ${Number(fidelite.fcfa_par_point).toLocaleString("fr-FR")} FCFA` : ""}).</p>
+          </div>
+        )}
+
         <div className="lg-total">
+          {promo && <div className="lg-total-remise"><span>Code {promo.code}</span><span>-{fcfa(promo.remise)} FCFA</span></div>}
           <div className="lg-total-etiquette">Total à régler</div>
-          <div className="lg-total-montant">{fcfa(totalPanier)}<small>FCFA</small></div>
+          <div className="lg-total-montant">{fcfa(totalPanier - (promo ? promo.remise : 0))}<small>FCFA</small></div>
         </div>
 
         <h2 className="lg-section-titre">Mode de paiement</h2>
@@ -66,7 +83,7 @@ export default function Paiement({ menu, panier, totalPanier, onRetour, onPayer 
 
       <div className="lg-pied">
         <button className="lg-btn lg-btn-orange" disabled={!mode || envoi || lignes.length === 0} onClick={confirmer}>
-          {envoi ? "Envoi en cours…" : mode ? `Confirmer la commande · ${fcfa(totalPanier)} FCFA` : "Choisissez un mode de paiement"}
+          {envoi ? "Envoi en cours…" : mode ? `Confirmer la commande · ${fcfa(totalPanier - (promo ? promo.remise : 0))} FCFA` : "Choisissez un mode de paiement"}
         </button>
       </div>
     </div>
