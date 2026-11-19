@@ -10,7 +10,7 @@ const API = "https://launge-backend-production.up.railway.app";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Connexion par email + mot de passe. Sert au gérant et à l'administrateur (seuls le texte et l'adresse d'appel changent).
-export default function ConnexionCompte({ chemin, titre, sousTitre, badge, onConnecte, onRetour, onInscription }) {
+export default function ConnexionCompte({ chemin, titre, sousTitre, badge, onConnecte, onRetour, onInscription, onPersonnel }) {
   const [email, setEmail] = useState("");
   const [mdp, setMdp] = useState("");
   const [voir, setVoir] = useState(false);
@@ -86,6 +86,9 @@ export default function ConnexionCompte({ chemin, titre, sousTitre, badge, onCon
 
         {onInscription && (
           <div className="lg-cp-pied">Pas encore sur Launge ? <button type="button" className="lg-cp-lien" onClick={onInscription}>Inscrire mon restaurant</button></div>
+        )}
+        {onPersonnel && (
+          <div className="lg-cp-pied">Vous travaillez dans un restaurant ? <button type="button" className="lg-cp-lien" onClick={onPersonnel}>Connexion du personnel</button></div>
         )}
       </div>
     </div>
