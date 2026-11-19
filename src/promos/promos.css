@@ -1,0 +1,61 @@
+/* Promotions, avis, fidélité. Utilise design/tokens.css. */
+.lg-etoiles { display: inline-flex; gap: 2px; vertical-align: middle; }
+.lg-etoile { display: inline-flex; color: #d4d6dc; background: none; border: 0; padding: 0; }
+.lg-etoile[data-pleine="true"] { color: var(--lg-orange); }
+.lg-etoile[data-pleine="true"] svg { fill: currentColor; }
+.lg-etoiles-choix { gap: 6px; margin: 10px 0; }
+.lg-etoiles-choix .lg-etoile { cursor: pointer; padding: 4px; border-radius: 10px; }
+.lg-etoiles-choix .lg-etoile:focus-visible { outline: 2px solid var(--lg-orange); }
+
+.lg-avis-pastille { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 4px 10px 4px 8px; border: 1px solid var(--lg-bordure); border-radius: 999px; background: var(--lg-blanc); color: var(--lg-nuit); font: inherit; font-size: 13px; cursor: pointer; }
+.lg-avis-pastille span { color: var(--lg-texte-3); }
+.lg-avis-pastille .lg-etoile { color: var(--lg-orange); }
+.lg-avis-pastille .lg-etoile svg { fill: currentColor; }
+.lg-avis-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.lg-avis-liste li { padding-bottom: 14px; border-bottom: 1px solid var(--lg-bordure); }
+.lg-avis-liste li:last-child { border-bottom: 0; }
+.lg-avis-liste p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.lg-avis-ligne { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lg-avis-reponse { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--lg-ivoire); border-left: 3px solid var(--lg-orange); font-size: 13px; }
+.lg-avis-reponse p { margin: 4px 0 0; }
+
+.lg-promo { margin-top: 16px; }
+.lg-promo-rang { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.lg-promo-champ { height: 48px; padding: 0 14px; border-radius: 14px; border: 1.5px dashed var(--lg-bordure); background: var(--lg-blanc); font: inherit; font-size: 16px; text-transform: uppercase; letter-spacing: .04em; color: var(--lg-texte); min-width: 0; }
+.lg-promo-champ:focus { border-color: var(--lg-orange); border-style: solid; outline: none; box-shadow: 0 0 0 3px rgba(244, 119, 69, .2); }
+.lg-promo-erreur { margin-top: 8px; color: var(--lg-rouge); font-size: 13px; font-weight: 600; }
+.lg-promo-ok { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 14px; border-radius: 14px; background: var(--lg-vert-doux); color: #05704f; font-size: 14px; }
+.lg-promo-ok span { flex: 1; }
+.lg-promo-ok button { border: 0; background: none; color: inherit; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.lg-total-remise { display: flex; justify-content: space-between; padding: 0 0 8px; font-size: 14px; color: #7ee2c3; font-weight: 600; }
+
+.lg-cadeau { display: flex; gap: 14px; margin-top: 16px; padding: 16px; border-radius: 20px; background: var(--lg-nuit); color: #fff; }
+.lg-cadeau p { margin: 4px 0 10px; font-size: 13px; color: rgba(255, 255, 255, .75); }
+.lg-cadeau-icone { flex: none; width: 46px; height: 46px; border-radius: 14px; background: var(--lg-orange); display: flex; align-items: center; justify-content: center; }
+.lg-cadeau-code { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lg-cadeau-code code { font-family: var(--lg-titre); font-weight: 800; font-size: 20px; letter-spacing: .08em; background: rgba(255, 255, 255, .12); padding: 8px 12px; border-radius: 10px; }
+.lg-cadeau-code .lg-btn { min-height: 40px; background: #fff; color: var(--lg-nuit); }
+.lg-avis-form { margin-top: 16px; display: grid; gap: 4px; }
+.lg-avis-texte { width: 100%; box-sizing: border-box; padding: 12px 14px; margin: 6px 0 10px; border-radius: 14px; border: 1.5px solid var(--lg-bordure); font: inherit; font-size: 16px; resize: vertical; background: var(--lg-blanc); color: var(--lg-texte); }
+.lg-avis-texte:focus { border-color: var(--lg-orange); outline: none; box-shadow: 0 0 0 3px rgba(244, 119, 69, .2); }
+
+/* Espace gérant */
+.lg-promo-carte { background: var(--lg-blanc); border-radius: var(--lg-rayon-m); box-shadow: var(--lg-ombre-s); padding: 14px 16px; display: grid; gap: 8px; }
+.lg-promo-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lg-promo-code { font-family: var(--lg-titre); font-weight: 800; font-size: 17px; letter-spacing: .06em; color: var(--lg-nuit); overflow-wrap: anywhere; }
+.lg-promo-detail { font-size: 13px; color: var(--lg-texte-2); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.lg-promo-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.lg-promo-actions .lg-btn { min-height: 40px; }
+.lg-grille-2 { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .lg-grille-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lg-bascule { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.lg-bascule .lg-chip { justify-content: center; }
+.lg-avis-resume { display: flex; align-items: center; gap: 14px; background: var(--lg-blanc); border-radius: var(--lg-rayon-m); box-shadow: var(--lg-ombre-s); padding: 14px 16px; }
+.lg-avis-resume b { font-family: var(--lg-titre); font-size: 34px; line-height: 1; color: var(--lg-nuit); }
+.lg-fid-apercu { background: var(--lg-orange-doux); color: #8a3a12; border-radius: 14px; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
+
+/* Sept onglets en bas de l'écran sur téléphone : on répartit la largeur à parts égales. */
+@media (max-width: 559px) {
+  .lg-nav { padding-left: 2px; padding-right: 2px; }
+  .lg-nav-item { flex: 1 1 0; min-width: 0; font-size: 10px; padding: 0 1px; }
+}
