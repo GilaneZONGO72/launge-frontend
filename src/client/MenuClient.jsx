@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import Icon from "../design/Icon";
 import AvisResto from "../promos/AvisResto";
 import useVitrine from "../promos/useVitrine";
-
+import Postuler from "../equipe/Postuler";
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
 
 function PhotoPlat({ plat }) {
@@ -133,6 +133,7 @@ export default function MenuClient({ menu, panier, modifier, totalPanier, restoI
                   <div style={{ fontWeight: l === "Contact" ? 700 : 400, color: l === "Contact" ? "#c4521f" : "var(--lg-texte)" }}>{v}</div>
                 </div>
               ))}
+            {restoInfo && <Postuler restaurantId={restoInfo.id} poste={recrutement.poste} />}
           </section>
         )}
       </div>
