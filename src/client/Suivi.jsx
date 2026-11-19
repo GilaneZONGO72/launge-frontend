@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "../design/Icon";
 import "./client.css";
+import SuiviPlus from "../promos/SuiviPlus";
 
 const API = "https://launge-backend-production.up.railway.app";
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
@@ -128,6 +129,7 @@ export default function Suivi({ reference, onAccueil, intervalleMs = 5000 }) {
                 </div>
               </div>
             )}
+            {data && <SuiviPlus reference={reference} data={data} />}
 
             <div className="lg-lien">
               Gardez ce lien : il vous permet de retrouver votre commande à tout moment, sans compte.
