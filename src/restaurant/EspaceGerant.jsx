@@ -10,10 +10,12 @@ import { Commandes } from "./Commandes";
 import TableauCuisine from "../cuisine/TableauCuisine";
 import EspaceStock from "../stock/EspaceStock";
 import EspacePromos from "../promos/EspacePromos";
+import EspaceEquipe from "../equipe/EspaceEquipe";
+import { ongletsDe, nomPoste } from "../equipe/postes";
 import { rechargerMenu } from "../stock/api";
 import { enAlerte, niveau } from "../stock/outils";
 
-const ONGLETS = [
+const TOUS = [
   { id: "accueil", nom: "Accueil", icone: "accueil" },
   { id: "menu", nom: "Menu", icone: "couverts" },
   { id: "stock", nom: "Stock", icone: "boite" },
@@ -24,8 +26,12 @@ const ONGLETS = [
 ];
 
 export default function EspaceGerant(p) {
-  const [onglet, setOnglet] = useState("accueil");
   const { gerant } = p;
+  // Le gérant voit tout ; un membre du personnel ne voit que les onglets de son poste.
+  const poste = gerant && gerant.poste;
+  const permis = ongletsDe(poste);
+  const ONGLETS = TOUS.filter((o) => permis.includes(o.id));
+  const [onglet, setOnglet] = useState(() => permis[0]);
   // Les fonctions de chargement sont recréées à chaque affichage : on les garde dans une référence
   // pour ne recharger qu'à l'ouverture d'un onglet (sinon : boucle de requêtes).
   const chargeurs = useRef(p);
@@ -47,7 +53,8 @@ export default function EspaceGerant(p) {
     return () => clearInterval(t);
   }, [gerantId]);
 
-  // Alerte de seuil : quand un plat passe sous son seuil (ou s'épuise), un bandeau le signale.
+  // Alerte de seuil : quand un plat passe sous son seuil (ou s'épuise), un bandeau le signale (aux personnes qui voient le stock).
+  const voitStock = permis.includes("stock");
   const [alerteStock, setAlerteStock] = useState(null);
   const connues = useRef(null);
   useEffect(() => {
@@ -57,13 +64,13 @@ export default function EspaceGerant(p) {
     if (connues.current === null) { connues.current = maintenant; return; }
     const nouveaux = [...maintenant].filter(([id, n]) => connues.current.get(id) !== n && (n === "epuise" || connues.current.get(id) !== "epuise"));
     connues.current = maintenant;
-    if (nouveaux.length) {
+    if (nouveaux.length && voitStock) {
       const [id, n] = nouveaux[0];
       const plat = p.menu.find((x) => x.id === id);
       const plus = nouveaux.length > 1 ? ` (et ${nouveaux.length - 1} autre${nouveaux.length > 2 ? "s" : ""})` : "";
       setAlerteStock({ texte: n === "epuise" ? `${plat.nom} est épuisé${plus}` : `Stock bas : ${plat.nom}, il en reste ${plat.stock}${plus}` });
     }
-  }, [p.menu]);
+  }, [p.menu, voitStock]);
   useEffect(() => {
     if (!alerteStock) return undefined;
     const t = setTimeout(() => setAlerteStock(null), 10000);
@@ -72,17 +79,21 @@ export default function EspaceGerant(p) {
   const nbAlertes = enAlerte(p.menu).length;
 
   const ouvrir = (id) => { setOnglet(id); if (id === "cuisine") p.setNouvellesCommandes(0); window.scrollTo(0, 0); };
-  // La liste garde un moment les commandes déjà servies : on ne les compte pas.
-  const enCours = p.commandesCuisine.filter((c) => c.statut !== "servi").length;
-  const aFaire = p.commandesCuisine.filter((c) => c.statut === "en_cours" || c.statut === "acceptee").length;
+  // La liste garde un moment les commandes déjà servies : on ne les compte pas. (Elle peut être vide ou absente selon le poste.)
+  const cuisine = Array.isArray(p.commandesCuisine) ? p.commandesCuisine : [];
+  const enCours = cuisine.filter((c) => c.statut !== "servi").length;
+  const aFaire = cuisine.filter((c) => c.statut === "en_cours" || c.statut === "acceptee").length;
+  const titre = poste ? gerant.membre || "Équipe" : gerant && gerant.nom;
+  const sousTitre = poste ? `${nomPoste(poste)} · ${gerant.nom}` : "Espace restaurant";
+  const initiale = (poste ? gerant.membre || gerant.nom : gerant && gerant.nom) || "L";
 
   return (
     <div className="lg-page lg-appli">
       <audio ref={p.audioRef} src="https://cdn.freesound.org/previews/256/256113_3263906-lq.mp3" />
       <nav className="lg-nav" aria-label="Navigation principale">
-        <div className="lg-nav-marque"><span className="lg-avatar">{gerant && gerant.nom ? gerant.nom[0].toUpperCase() : "L"}</span><span><strong>{gerant && gerant.nom}</strong><small>Launge</small></span></div>
+        <div className="lg-nav-marque"><span className="lg-avatar">{initiale[0].toUpperCase()}</span><span><strong>{titre}</strong><small>{poste ? nomPoste(poste) : "Launge"}</small></span></div>
         {ONGLETS.map((o) => (
-          <button key={o.id} className="lg-nav-item" aria-current={onglet === o.id ? "page" : undefined} onClick={() => ouvrir(o.id)}>
+          <button key={o.id} className="lg-nav-item" aria-current={onglet === o.id || (o.id === "reglages" && onglet === "equipe") ? "page" : undefined} onClick={() => ouvrir(o.id)}>
             <span className="lg-nav-icone"><Ico nom={o.icone} taille={22} />
               {o.id === "cuisine" && (p.nouvellesCommandes > 0 || aFaire > 0) && <span className="lg-nav-pastille">{p.nouvellesCommandes > 0 ? p.nouvellesCommandes : aFaire}</span>}
               {o.id === "stock" && nbAlertes > 0 && <span className="lg-nav-pastille">{nbAlertes}</span>}
@@ -93,12 +104,12 @@ export default function EspaceGerant(p) {
       </nav>
       <div className="lg-principal">
         <header className="lg-haut">
-          <span className="lg-avatar">{gerant && gerant.nom ? gerant.nom[0].toUpperCase() : "L"}</span>
-          <div style={{ flex: 1, minWidth: 0 }}><div className="lg-titre lg-h3" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{gerant && gerant.nom}</div><div className="lg-legende">Espace restaurant</div></div>
+          <span className="lg-avatar">{initiale[0].toUpperCase()}</span>
+          <div style={{ flex: 1, minWidth: 0 }}><div className="lg-titre lg-h3" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{titre}</div><div className="lg-legende">{sousTitre}</div></div>
           <button className="lg-btn lg-btn-rond" onClick={p.onQuitter} aria-label="Se déconnecter"><Ico nom="deconnexion" /></button>
         </header>
         <main className="lg-contenu">
-          {alerteStock && (
+          {alerteStock && voitStock && (
             <div className="lg-alerte-stock" role="alert">
               <Ico nom="alerte" taille={20} /><span>{alerteStock.texte}</span>
               <button type="button" onClick={() => { setAlerteStock(null); ouvrir("stock"); }} aria-label="Voir le stock" style={{ width: "auto", padding: "0 12px", borderRadius: 16 }}>Voir</button>
@@ -108,10 +119,11 @@ export default function EspaceGerant(p) {
           {onglet === "accueil" && <Dashboard gerant={gerant} menu={p.menu} stats={p.stats} nbEnCours={enCours} allerCuisine={() => ouvrir("cuisine")} />}
           {onglet === "menu" && <MenuGestion gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
           {onglet === "stock" && <EspaceStock gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
-          {onglet === "commandes" && <Commandes commandes={p.commandes} />}
+          {onglet === "commandes" && <Commandes commandes={Array.isArray(p.commandes) ? p.commandes : []} />}
           {onglet === "clients" && <EspacePromos gerant={gerant} />}
-          {onglet === "cuisine" && <TableauCuisine commandes={p.commandesCuisine} />}
-          {onglet === "reglages" && <Reglages {...p} />}
+          {onglet === "cuisine" && <TableauCuisine commandes={cuisine} />}
+          {onglet === "reglages" && !poste && <Reglages {...p} onEquipe={() => ouvrir("equipe")} />}
+          {onglet === "equipe" && !poste && <EspaceEquipe gerant={gerant} onRetour={() => ouvrir("reglages")} />}
         </main>
       </div>
     </div>
