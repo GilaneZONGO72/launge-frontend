@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import Icon from "../design/Icon";
+import AvisResto from "../promos/AvisResto";
+import useVitrine from "../promos/useVitrine";
 
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
 
@@ -69,6 +71,7 @@ export default function MenuClient({ menu, panier, modifier, totalPanier, restoI
   const nbArticles = Object.values(panier).reduce((a, n) => a + n, 0);
   const recrutement = restoInfo && restoInfo.recrutement;
   const chargement = !restoInfo;
+  const vitrine = useVitrine(restoInfo && restoInfo.id);
 
   return (
     <div className="lg-page" style={{ paddingBottom: nbArticles > 0 ? 100 : 32 }}>
@@ -82,6 +85,7 @@ export default function MenuClient({ menu, panier, modifier, totalPanier, restoI
             <div className="lg-titre lg-h3" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {restoInfo ? restoInfo.nom : "Chargement…"}
             </div>
+            {restoInfo && <AvisResto restaurantId={restoInfo.id} vitrine={vitrine} />}
           </div>
         </header>
 
