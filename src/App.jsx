@@ -483,9 +483,9 @@ useEffect(() => {
     setCodeCuisine(nouveauCodeCuisine); setNouveauCodeCuisine(""); alert("Code cuisine mis à jour !");
   };
 
-  const passerCommande = async (modePaiement) => {
+ const passerCommande = async (modePaiement, extras = {}) => {
     const items = Object.entries(panier).map(([id, qte]) => { const item = menu.find(i => i.id === id); return { id, nom: item.nom, qte, prix: item.prix }; });
-    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement }) });
+    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement, code_promo: extras.code_promo, telephone: extras.telephone }) });
     const data = await res.json(); if (data.error) return alert(data.error);
    setPanier({});
     if (!data.reference_suivi) { setVue("confirmation"); return; }
@@ -1005,7 +1005,7 @@ if (vue === "menu") return (
   }
 
   if (vue === "paiement") return (
-    <Paiement menu={menu} panier={panier} totalPanier={totalPanier} onRetour={() => setVue("menu")} onPayer={passerCommande} />
+    <Paiement menu={menu} panier={panier} totalPanier={totalPanier} restoId={restoId} onRetour={() => setVue("menu")} onPayer={passerCommande} />
   );
 
   if (vue === "suivi") return (
