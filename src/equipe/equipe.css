@@ -1,0 +1,13 @@
+/* Équipe : choix du poste, accès remis une fois, comptes désactivés. */
+.lg-postes { display: grid; gap: 8px; }
+.lg-poste-choix { display: grid; gap: 2px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--lg-bordure); background: var(--lg-blanc); font: inherit; color: var(--lg-texte); cursor: pointer; }
+.lg-poste-choix span { font-size: 13px; color: var(--lg-texte-2); }
+.lg-poste-choix[data-actif="true"] { border-color: var(--lg-orange); background: var(--lg-orange-doux); }
+.lg-acces { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: var(--lg-nuit); color: #fff; }
+.lg-acces div { display: grid; gap: 2px; }
+.lg-acces .lg-legende { color: rgba(255, 255, 255, .65); }
+.lg-acces strong { font-family: var(--lg-titre); font-size: 18px; letter-spacing: .04em; overflow-wrap: anywhere; }
+.lg-promo-carte[data-inactif="true"] { opacity: .65; }
+.lg-reglage-equipe { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 14px 16px; border: 0; border-radius: var(--lg-rayon-m); background: var(--lg-blanc); box-shadow: var(--lg-ombre-s); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.lg-reglage-equipe span { display: grid; gap: 2px; }
+.lg-reglage-equipe small { color: var(--lg-texte-2); font-size: 13px; }
