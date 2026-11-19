@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import "../design/tokens.css";
 import "../client/client.css";
 import "./restaurant.css";
-import Ico from "../stock/IconesStock";
+import Ico from "../promos/IconesPromos";
 import Dashboard from "./Dashboard";
 import MenuGestion from "./MenuGestion";
 import Reglages from "./Reglages";
 import { Commandes } from "./Commandes";
 import TableauCuisine from "../cuisine/TableauCuisine";
 import EspaceStock from "../stock/EspaceStock";
+import EspacePromos from "../promos/EspacePromos";
 import { rechargerMenu } from "../stock/api";
 import { enAlerte, niveau } from "../stock/outils";
 
@@ -17,6 +18,7 @@ const ONGLETS = [
   { id: "menu", nom: "Menu", icone: "couverts" },
   { id: "stock", nom: "Stock", icone: "boite" },
   { id: "commandes", nom: "Commandes", icone: "liste" },
+  { id: "clients", nom: "Clients", icone: "etoile" },
   { id: "cuisine", nom: "Cuisine", icone: "flamme" },
   { id: "reglages", nom: "Réglages", icone: "reglages" },
 ];
@@ -107,6 +109,7 @@ export default function EspaceGerant(p) {
           {onglet === "menu" && <MenuGestion gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
           {onglet === "stock" && <EspaceStock gerant={gerant} menu={p.menu} setMenu={p.setMenu} />}
           {onglet === "commandes" && <Commandes commandes={p.commandes} />}
+          {onglet === "clients" && <EspacePromos gerant={gerant} />}
           {onglet === "cuisine" && <TableauCuisine commandes={p.commandesCuisine} />}
           {onglet === "reglages" && <Reglages {...p} />}
         </main>
