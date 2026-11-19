@@ -40,7 +40,7 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
     setEnvoi(true); setErreur("");
     const corps = {
       nom: b.nom.trim(), prix: Number(b.prix), categorie: (b.categorie || "Plats").trim(),
-     ...(edition ? {} : { stock: b.stock === "" ? 0 : Number(b.stock) }), seuil_alerte
+...(edition ? {} : { stock: b.stock === "" ? 0 : Number(b.stock) }), seuil_alerte: b.seuil_alerte === "" ? 0 : Number(b.seuil_alerte),
       image_url: b.image_url || null, disponible: b.disponible !== false,
     };
     try {
@@ -77,7 +77,7 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
           <Champ label="Seuil d'alerte"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.seuil_alerte} onChange={(e) => maj("seuil_alerte", e.target.value)} placeholder="5" /></Champ>
         </div>
         {edition && <p className="lg-legende" style={{ margin: 0 }}>Pour changer la quantité en stock, utilisez l'onglet Stock : chaque changement y est enregistré.</p>}
-   
+          <div className="lg-ligne-inter">
           <span><strong>Disponible à la commande</strong><span className="lg-champ-aide">Désactivez pour masquer temporairement le plat.</span></span>
           <Interrupteur actif={b.disponible !== false} onChange={(v) => maj("disponible", v)} label="Disponible à la commande" />
         </div>
