@@ -78,7 +78,7 @@ export default function Paiement({ menu, panier, totalPanier, restoId, onRetour,
             </button>
           ))}
         </div>
-        <p className="lg-note">Aucun compte nécessaire. Vous suivrez votre commande en direct.<br />Le paiement en ligne sera disponible prochainement.</p>
+        <p className="lg-note">Aucun compte nécessaire. Vous suivrez votre commande en direct.<br />Le paiement en ligne sera disponible prochainement.{menu.some((i) => i.prix_base != null && i.prix !== i.prix_base) && <><br />Les prix incluent 1 % de frais de service Launge.</>}</p>
       </div>
 
       <div className="lg-pied">
