@@ -415,7 +415,9 @@ useEffect(() => {
     if (data.error) { alert("Restaurant introuvable."); return; }
     setRestoId(data.id); setRestoInfo(data); chargerMenu(data.id);
   };
-  const totalPanier = Object.entries(panier).reduce((acc, [id, qte]) => { const item = menu.find(i => i.id === id); return acc + (item ? item.prix * qte : 0); }, 0);
+  // Côté client : le prix affiché est le prix du gérant majoré de 1 % (calculé par le serveur).
+  const menuClient = menu.map((p) => (p.prix_client != null ? { ...p, prix_base: p.prix, prix: p.prix_client } : p));
+  const totalPanier = Object.entries(panier).reduce((acc, [id, qte]) => { const item = menuClient.find(i => i.id === id); return acc + (item ? item.prix * qte : 0); }, 0);
   const chargerMenu = async (id) => { const res = await fetch(`${API}/api/menu/${id}`); const data = await res.json(); setMenu(data); };
   const chargerCommandes = async (id) => { const res = await fetch(`${API}/api/commandes/${id}`); const data = await res.json(); setCommandes(data); };
   const chargerRestos = async () => { const res = await fetch(`${API}/api/restaurants`); const data = await res.json(); setRestos(data); };
@@ -920,7 +922,7 @@ if (vue === "admin-dashboard") return <EspaceAdmin onQuitter={() => { setAdmin(n
   );
 if (vue === "menu") return (
     <MenuClient
-      menu={menu}
+      menu={menuClient}
       panier={panier}
       modifier={modifier}
       totalPanier={totalPanier}
@@ -1019,7 +1021,7 @@ if (vue === "menu") return (
   }
 
   if (vue === "paiement") return (
-    <Paiement menu={menu} panier={panier} totalPanier={totalPanier} restoId={restoId} onRetour={() => setVue("menu")} onPayer={passerCommande} />
+<Paiement menu={menuClient} panier={panier} totalPanier={totalPanier} restoId={restoId} onRetour={() => setVue("menu")} onPayer={passerCommande} />
   );
 
   if (vue === "suivi") return (
