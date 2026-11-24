@@ -1,0 +1,19 @@
+/* Finances : chiffres de la semaine et règlement. */
+.lg-fin-resume { display: grid; gap: 12px; padding: 18px; border-radius: var(--lg-rayon-l); background: var(--lg-nuit); color: #fff; }
+.lg-fin-resume .lg-legende { color: rgba(255, 255, 255, .65); }
+.lg-fin-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.lg-fin-grille div { display: grid; gap: 2px; min-width: 0; }
+.lg-fin-grille strong { font-family: var(--lg-titre); font-size: 20px; overflow-wrap: anywhere; }
+.lg-fin-solde { padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, .1); font-weight: 700; }
+.lg-fin-solde[data-signe="plus"] { background: var(--lg-vert-doux); color: #05604b; }
+.lg-fin-solde[data-signe="moins"] { background: var(--lg-orange-doux); color: #a8431a; }
+.lg-fin-carte .lg-fin-grille strong { font-size: 16px; }
+.lg-fin-regles { display: grid; gap: 6px; font-size: 14px; color: var(--lg-texte-2); }
+.lg-fin-regles strong { color: var(--lg-texte); }
+.lg-fin-ligne { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--lg-bordure); font-size: 14px; }
+.lg-fin-ligne:last-child { border-bottom: 0; }
+.lg-fin-ligne span:first-child { display: grid; gap: 2px; min-width: 0; }
+.lg-fin-ligne small { color: var(--lg-texte-2); }
+.lg-fin-ligne strong { white-space: nowrap; text-align: right; }
+.lg-fin-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lg-fin-nav strong { font-family: var(--lg-titre); text-align: center; }
