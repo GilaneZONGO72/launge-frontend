@@ -3,18 +3,25 @@ import { QRCodeSVG } from "qrcode.react";
 import Ico from "./IconeGerant";
 import { Champ, Interrupteur } from "./Champs";
 import Profil from "./Profil";
-export default function Reglages({ gerant, recrutement, setRecrutement, sauvegarderRecrutement, codeCuisine, nouveauCodeCuisine, setNouveauCodeCuisine, sauvegarderCodeCuisine, nbTables, setNbTables, lienQR, onQuitter, onEquipe }) {
+export default function Reglages({ gerant, recrutement, setRecrutement, sauvegarderRecrutement, codeCuisine, nouveauCodeCuisine, setNouveauCodeCuisine, sauvegarderCodeCuisine, nbTables, setNbTables, lienQR, onQuitter, onEquipe, onFinances }) {
   const [voirCode, setVoirCode] = useState(false);
   return (
     <div className="lg-pile">
       <h1 className="lg-titre lg-h1">Réglages</h1>
-       <Profil gerant={gerant} /> 
+      {onFinances && (
+        <button type="button" className="lg-reglage-equipe" onClick={onFinances}>
+          <span><strong>Finances</strong><small>Commissions, semaine en cours et règlements</small></span>
+          <Ico nom="suivant" taille={20} />
+        </button>
+      )}
       {onEquipe && (
         <button type="button" className="lg-reglage-equipe" onClick={onEquipe}>
           <span><strong>Équipe et recrutement</strong><small>Comptes du personnel, droits par poste, candidatures</small></span>
           <Ico nom="suivant" taille={20} />
         </button>
       )}
+
+      <Profil gerant={gerant} />
 
       <section className="lg-bloc">
         <h2 className="lg-bloc-titre"><Ico nom="flamme" taille={18} /> Accès cuisine</h2>
