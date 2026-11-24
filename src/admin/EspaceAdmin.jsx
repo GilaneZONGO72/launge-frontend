@@ -8,6 +8,7 @@ import Ico from "../comptes/IconesComptes";
 import Marque from "../comptes/Marque";
 import CarteAdmin from "./CarteAdmin";
 import Confirmation from "./Confirmation";
+import FinancesAdmin from "../finances/FinancesAdmin";
 import { ACTIONS_JOURNAL, compter, filtrer, ilYa } from "./outils";
 
 const API = "https://launge-backend-production.up.railway.app";
@@ -16,6 +17,7 @@ const ONGLETS = [
   { id: "valide", texte: "Actifs" },
   { id: "refuse", texte: "Refusés" },
   { id: "tous", texte: "Tous" },
+  { id: "finances", texte: "Finances" },
   { id: "journal", texte: "Journal" },
 ];
 const TEXTES = {
@@ -73,8 +75,9 @@ export default function EspaceAdmin({ onQuitter }) {
     if (restos && !defautFait) { setDefautFait(true); if (nombres.en_attente === 0) setOnglet(nombres.valide > 0 ? "valide" : "tous"); }
   }, [restos, defautFait, nombres]);
 
-  const visibles = useMemo(() => filtrer(restos || [], onglet === "journal" ? "tous" : onglet, recherche), [restos, onglet, recherche]);
+  const visibles = useMemo(() => filtrer(restos || [], onglet === "journal" || onglet === "finances" ? "tous" : onglet, recherche), [restos, onglet, recherche]);
 
+  const surListe = onglet !== "journal" && onglet !== "finances";
   const lancer = (action, resto) => { setErreurAction(""); setConfirmation({ action, resto }); };
 
   const confirmer = async () => {
@@ -128,24 +131,26 @@ export default function EspaceAdmin({ onQuitter }) {
           <div className="lg-chips" role="tablist" aria-label="Filtrer">
             {ONGLETS.map((o) => (
               <button key={o.id} type="button" role="tab" className="lg-chip" aria-pressed={onglet === o.id} aria-selected={onglet === o.id} onClick={() => setOnglet(o.id)}>
-                {o.texte}{o.id !== "journal" && restos ? ` (${nombres[o.id]})` : ""}
+                {o.texte}{o.id !== "journal" && o.id !== "finances" && restos ? ` (${nombres[o.id]})` : ""}
               </button>
             ))}
           </div>
 
-          {onglet !== "journal" && (
+          {surListe && (
             <div className="lg-recherche"><Ico nom="recherche" taille={18} /><input type="search" placeholder="Rechercher par nom, ville, email ou code" value={recherche} onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher un restaurant" /></div>
           )}
 
-          {onglet !== "journal" && restos === null && (
+          {surListe && restos === null && (
             <div className="lg-adm-liste" aria-hidden="true">{[0, 1, 2].map((i) => <div key={i} className="lg-adm-carte"><div className="lg-adm-photo lg-squelette" style={{ aspectRatio: "1/1" }} /><div className="lg-adm-corps"><span className="lg-squelette" style={{ display: "block", aspectRatio: "auto", height: 16, width: "55%", borderRadius: 8 }} /></div></div>)}</div>
           )}
-          {onglet !== "journal" && restos && visibles.length === 0 && (
+          {surListe && restos && visibles.length === 0 && (
             <div className="lg-vide"><Ico nom="couverts" taille={32} /><div>{recherche.trim() ? "Aucun restaurant ne correspond à votre recherche." : onglet === "en_attente" ? "Aucune demande en attente." : "Aucun restaurant dans cette catégorie."}</div></div>
           )}
-          {onglet !== "journal" && visibles.length > 0 && (
+          {surListe && visibles.length > 0 && (
             <div className="lg-adm-liste">{visibles.map((r) => <CarteAdmin key={r.id} resto={r} occupe={occupe === r.id} onAction={lancer} />)}</div>
           )}
+
+          {onglet === "finances" && <FinancesAdmin />}
 
           {onglet === "journal" && (
             journal === null
