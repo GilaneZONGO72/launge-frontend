@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient";
 import Ico from "./IconeGerant";
 import { Champ, Feuille, Interrupteur } from "./Champs";
 import { fcfa } from "./calculs";
+import { prixClient } from "../finances/outils";
 
 const API = "https://launge-backend-production.up.railway.app";
 const VIDE = { nom: "", prix: "", categorie: "Plats", stock: "", seuil_alerte: "", image_url: "", disponible: true };
@@ -15,7 +16,7 @@ async function appel(url, options) {
   return data;
 }
 
-function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre, onRetire }) {
+function FormulairePlat({ initial, gerantId, categories, actif, onFermer, onEnregistre, onRetire }) {
   const edition = Boolean(initial && initial.id);
   const [b, setB] = useState({ ...VIDE, ...(initial || {}) });
   const [envoi, setEnvoi] = useState(false);
@@ -67,7 +68,7 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
       </label>
       <div className="lg-form">
         <Champ label="Nom du plat"><input className="lg-input" value={b.nom} onChange={(e) => maj("nom", e.target.value)} placeholder="Ex : Ndolé spécial" autoFocus /></Champ>
-        <Champ label="Prix (FCFA)"><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.prix} onChange={(e) => maj("prix", e.target.value)} placeholder="2500" /></Champ>
+        <Champ label="Prix (FCFA)" aide={!actif ? "Période d'essai : vos clients voient exactement ce prix." : Number(b.prix) > 0 ? `Vos clients verront ${fcfa(prixClient(b.prix))} FCFA (frais de service Launge de 1 % inclus).` : "Vos clients verront ce prix majoré de 1 % (frais de service Launge)."}><input className="lg-input" type="number" inputMode="numeric" min="0" value={b.prix} onChange={(e) => maj("prix", e.target.value)} placeholder="2500" /></Champ>
         <Champ label="Catégorie">
           <input className="lg-input" list="lg-categories" value={b.categorie} onChange={(e) => maj("categorie", e.target.value)} />
           <datalist id="lg-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
@@ -90,6 +91,9 @@ function FormulairePlat({ initial, gerantId, categories, onFermer, onEnregistre,
 }
 
 export default function MenuGestion({ gerant, menu, setMenu }) {
+  // Formule active : les plats renvoyés par le serveur portent un prix client majoré.
+  const avecPrix = menu.filter((x) => Number(x.prix) > 0 && x.prix_client != null);
+  const actif = avecPrix.length ? avecPrix.some((x) => Number(x.prix_client) > Number(x.prix)) : gerant.formule === "actif";
   const [filtre, setFiltre] = useState("Toutes");
   const [recherche, setRecherche] = useState("");
   const [feuille, setFeuille] = useState(null); // null | {} (nouveau) | plat (modification)
@@ -159,6 +163,7 @@ export default function MenuGestion({ gerant, menu, setMenu }) {
           initial={feuille.id ? feuille : null}
           gerantId={gerant.id}
           categories={categories}
+          actif={actif}
           onFermer={() => setFeuille(null)}
           onEnregistre={(data, edition) => { setMenu((m) => (edition ? m.map((x) => (x.id === data.id ? data : x)) : [...m, data])); setFeuille(null); }}
           onRetire={(id) => { setMenu((m) => m.filter((x) => x.id !== id)); setFeuille(null); }}
