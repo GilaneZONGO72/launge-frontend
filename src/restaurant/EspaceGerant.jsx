@@ -11,6 +11,7 @@ import TableauCuisine from "../cuisine/TableauCuisine";
 import EspaceStock from "../stock/EspaceStock";
 import EspacePromos from "../promos/EspacePromos";
 import EspaceEquipe from "../equipe/EspaceEquipe";
+import EspaceFinances from "../finances/EspaceFinances";
 import { ongletsDe, nomPoste } from "../equipe/postes";
 import { rechargerMenu } from "../stock/api";
 import { enAlerte, niveau } from "../stock/outils";
@@ -93,7 +94,7 @@ export default function EspaceGerant(p) {
       <nav className="lg-nav" aria-label="Navigation principale">
         <div className="lg-nav-marque"><span className="lg-avatar">{initiale[0].toUpperCase()}</span><span><strong>{titre}</strong><small>{poste ? nomPoste(poste) : "Launge"}</small></span></div>
         {ONGLETS.map((o) => (
-          <button key={o.id} className="lg-nav-item" aria-current={onglet === o.id || (o.id === "reglages" && onglet === "equipe") ? "page" : undefined} onClick={() => ouvrir(o.id)}>
+          <button key={o.id} className="lg-nav-item" aria-current={onglet === o.id || (o.id === "reglages" && (onglet === "equipe" || onglet === "finances")) ? "page" : undefined} onClick={() => ouvrir(o.id)}>
             <span className="lg-nav-icone"><Ico nom={o.icone} taille={22} />
               {o.id === "cuisine" && (p.nouvellesCommandes > 0 || aFaire > 0) && <span className="lg-nav-pastille">{p.nouvellesCommandes > 0 ? p.nouvellesCommandes : aFaire}</span>}
               {o.id === "stock" && nbAlertes > 0 && <span className="lg-nav-pastille">{nbAlertes}</span>}
@@ -122,8 +123,9 @@ export default function EspaceGerant(p) {
           {onglet === "commandes" && <Commandes commandes={Array.isArray(p.commandes) ? p.commandes : []} />}
           {onglet === "clients" && <EspacePromos gerant={gerant} />}
           {onglet === "cuisine" && <TableauCuisine commandes={cuisine} />}
-          {onglet === "reglages" && !poste && <Reglages {...p} onEquipe={() => ouvrir("equipe")} />}
+          {onglet === "reglages" && !poste && <Reglages {...p} onEquipe={() => ouvrir("equipe")} onFinances={() => ouvrir("finances")} />}
           {onglet === "equipe" && !poste && <EspaceEquipe gerant={gerant} onRetour={() => ouvrir("reglages")} />}
+          {onglet === "finances" && !poste && <EspaceFinances gerant={gerant} onRetour={() => ouvrir("reglages")} />}
         </main>
       </div>
     </div>
