@@ -1,0 +1,15 @@
+.lg-cc-onglets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin: 14px 0; background: var(--lg-blanc); border-radius: 16px; box-shadow: var(--lg-ombre-s); }
+.lg-cc-onglet { min-height: 44px; border: 0; border-radius: 12px; background: none; font: inherit; font-weight: 700; font-size: 14px; color: var(--lg-texte-3); cursor: pointer; }
+.lg-cc-onglet[aria-selected="true"] { background: var(--lg-orange-doux); color: var(--lg-orange); }
+.lg-cc-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lg-cc-ligne { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 0; border-radius: var(--lg-rayon-m); background: var(--lg-blanc); box-shadow: var(--lg-ombre-s); font: inherit; text-align: left; cursor: pointer; color: var(--lg-texte); }
+.lg-cc-corps { display: grid; gap: 2px; min-width: 0; }
+.lg-cc-corps .lg-legende { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-cc-droite { display: grid; gap: 4px; justify-items: end; flex: 0 0 auto; }
+.lg-cc-barre { height: 8px; border-radius: 4px; background: var(--lg-bordure); overflow: hidden; }
+.lg-cc-barre span { display: block; height: 100%; background: var(--lg-orange); border-radius: 4px; }
+.lg-cc-code { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--lg-vert-doux); }
+.lg-cc-code[data-etat="non"] { background: var(--lg-bordure); opacity: .75; }
+.lg-cc-form { display: grid; gap: 12px; }
+.lg-cc-danger { display: grid; gap: 10px; }
+.lg-btn-nuit.lg-pleine { width: 100%; }
