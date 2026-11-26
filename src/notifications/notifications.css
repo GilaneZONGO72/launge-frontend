@@ -1,0 +1,13 @@
+.lg-notif { display: grid; gap: 12px; }
+.lg-notif-texte, .lg-notif-info { margin: 0; font-size: 14px; color: var(--lg-texte-2, var(--lg-texte)); line-height: 1.45; }
+.lg-notif-ok { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--lg-vert); font-weight: 600; font-size: 14px; }
+.lg-notif-guide { background: var(--lg-blanc); border: 1px solid var(--lg-bordure); border-radius: var(--lg-rayon-m); padding: 14px; font-size: 14px; line-height: 1.5; }
+.lg-notif-guide p { margin: 0 0 8px; }
+.lg-notif-guide ol { margin: 0 0 8px; padding-left: 20px; display: grid; gap: 4px; }
+.lg-notif-carte { margin-top: 16px; }
+.lg-pleine { width: 100%; }
+.lg-notif-point { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--lg-vert); border: 2px solid #fff; }
+.lg-btn-rond, .lg-cuisine-btn { position: relative; }
+.lg-nav .lg-nav-notif { display: none; }
+.lg-nav-notif .lg-notif-point { top: -2px; right: -4px; }
+@media (min-width: 960px) { .lg-nav .lg-nav-notif { display: flex; } }
