@@ -30,7 +30,7 @@ export default function Accueil({ onClient, onGerant, onInscription, onCuisine, 
             <span className="lg-ac-boutons">
               {onCompte && <button type="button" className="lg-ac-bouton-verre" onClick={onCompte}><Ico nom="utilisateur" taille={16} /> Mon compte</button>}
               <button type="button" className="lg-ac-bouton-verre" onClick={onGerant}><Ico nom="mallette" taille={16} /> Espace restaurateur</button>
-            </span><Ico nom="mallette" taille={16} /> Espace restaurateur</button>
+            </span>
           </header>
           <div className="lg-ac-hero-texte">
             <span className="lg-ac-pastille">Commande à table · Cameroun</span>
