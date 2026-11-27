@@ -20,14 +20,17 @@ const ATOUTS = [
   { icone: "bouclier", titre: "Accès par rôle", texte: "Gérant, cuisine, caisse : chacun ne voit que ce qui le concerne." },
 ];
 
-export default function Accueil({ onClient, onGerant, onInscription, onCuisine }) {
+export default function Accueil({ onClient, onGerant, onInscription, onCuisine, onCompte }) {
   return (
     <div className="lg-page lg-ac">
       <section className="lg-ac-hero" style={{ backgroundImage: `linear-gradient(180deg, rgba(17,24,39,.35) 0%, rgba(17,24,39,.55) 55%, rgba(17,24,39,.8) 100%), url(${PHOTO})` }}>
         <div className="lg-ac-cadre">
           <header className="lg-ac-nav">
             <Marque taille={36} clair />
-            <button type="button" className="lg-ac-bouton-verre" onClick={onGerant}><Ico nom="mallette" taille={16} /> Espace restaurateur</button>
+            <span className="lg-ac-boutons">
+              {onCompte && <button type="button" className="lg-ac-bouton-verre" onClick={onCompte}><Ico nom="utilisateur" taille={16} /> Mon compte</button>}
+              <button type="button" className="lg-ac-bouton-verre" onClick={onGerant}><Ico nom="mallette" taille={16} /> Espace restaurateur</button>
+            </span><Ico nom="mallette" taille={16} /> Espace restaurateur</button>
           </header>
           <div className="lg-ac-hero-texte">
             <span className="lg-ac-pastille">Commande à table · Cameroun</span>
