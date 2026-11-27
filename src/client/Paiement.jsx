@@ -53,7 +53,7 @@ export default function Paiement({ menu, panier, totalPanier, restoId, onRetour,
 
         {restoId && lignes.length > 0 && <PromoPanier restaurantId={restoId} lignes={lignes} applique={promo} onChange={setPromo} />}
 
-        {fidelite && (
+        {fidelite &&  !session && (
           <div className="lg-promo">
             <label className="lg-champ-label" htmlFor="lg-tel-fid" style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 14 }}>Votre téléphone (facultatif)</label>
             <input id="lg-tel-fid" className="lg-promo-champ" style={{ width: "100%", boxSizing: "border-box", textTransform: "none", letterSpacing: 0 }} type="tel" inputMode="tel" autoComplete="tel" placeholder="6 99 00 11 22" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
