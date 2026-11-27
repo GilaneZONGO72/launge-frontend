@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "../design/Icon";
 import "./client.css";
 import SuiviPlus from "../promos/SuiviPlus";
+import BoutonNotifications from "../notifications/BoutonNotifications";
 
 const API = "https://launge-backend-production.up.railway.app";
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
@@ -128,6 +129,9 @@ export default function Suivi({ reference, onAccueil, intervalleMs = 5000 }) {
                   <span>{fcfa(data.total)} FCFA</span>
                 </div>
               </div>
+            )}
+            {data && statut !== "servi" && (
+              <BoutonNotifications variante="carte" titre="Être prévenu quand c'est prêt" texte="Recevez une notification sur ce téléphone dès que votre commande est prête." cible={{ id: `suivi:${reference}`, chemin: `/api/push/suivi/${encodeURIComponent(reference)}` }} />
             )}
             {data && <SuiviPlus reference={reference} data={data} />}
 
