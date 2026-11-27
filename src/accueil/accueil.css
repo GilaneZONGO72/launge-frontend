@@ -30,3 +30,4 @@
 
 .lg-ac-pied { margin-top: 48px; padding: 24px 0 32px; border-top: 1px solid var(--lg-bordure); }
 .lg-ac-pied-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lg-ac-boutons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
