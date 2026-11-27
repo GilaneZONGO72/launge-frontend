@@ -104,8 +104,9 @@ export default function EspaceGerant(p) {
             <span>{o.nom}</span>
           </button>
         ))}
+         {RECOIT_NOTIF && <BoutonNotifications variante="nav" titre="Notifications de commandes" texte="Soyez prévenu sur cet appareil à chaque nouvelle commande, même quand l'écran est éteint." cible={{ id: "equipe", chemin: "/api/push/equipe" }} />}
       </nav>
-      {RECOIT_NOTIF && <BoutonNotifications variante="nav" titre="Notifications de commandes" texte="Soyez prévenu sur cet appareil à chaque nouvelle commande, même quand l'écran est éteint." cible={{ id: "equipe", chemin: "/api/push/equipe" }} />}
+     
       <div className="lg-principal">
         <header className="lg-haut">
           <span className="lg-avatar">{initiale[0].toUpperCase()}</span>
