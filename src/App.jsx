@@ -491,8 +491,8 @@ useEffect(() => {
   };
 
  const passerCommande = async (modePaiement, extras = {}) => {
-    const items = Object.entries(panier).map(([id, qte]) => { const item = menu.find(i => i.id === id); return { id, nom: item.nom, qte, prix: item.prix }; });as
-    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json", ...entetesClient() }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement, code_promo: extras.code_promo, telephone: extr.telephone }) });
+    const items = Object.entries(panier).map(([id, qte]) => { const item = menu.find(i => i.id === id); return { id, nom: item.nom, qte, prix: item.prix }; });
+    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json", ...entetesClient() }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement, code_promo: extras.code_promo, telephone: extras.telephone }) });
     const data = await res.json(); if (data.error) return alert(data.error);
    setPanier({});
     if (!data.reference_suivi) { setVue("confirmation"); return; }
@@ -550,7 +550,7 @@ useEffect(() => {
       onSuivi={(ref) => { window.history.pushState({}, "", `/suivi/${ref}`); setRefSuivi(ref); setVue("suivi"); }}
     />
   );
-  );
+  
   if (vue === "login-gerant") return (
     <ConnexionCompte
       chemin="/api/restaurants/connexion"
