@@ -5,6 +5,7 @@ import "../restaurant/restaurant.css";
 import "./cuisine.css";
 import Ico from "./IconesCuisine";
 import TableauCuisine from "./TableauCuisine";
+import BoutonNotifications from "../notifications/BoutonNotifications";
 
 // Écran du cuisinier (connecté avec le code cuisine) : le tableau en plein écran.
 export default function VueCuisine({ restaurant, commandes, audioRef, onQuitter }) {
@@ -39,6 +40,7 @@ export default function VueCuisine({ restaurant, commandes, audioRef, onQuitter 
         <button className="lg-cuisine-btn" aria-pressed={muet} aria-label={muet ? "Activer le son des nouvelles commandes" : "Couper le son"} onClick={() => setMuet((m) => !m)}>
           <Ico nom={muet ? "sourdine" : "son"} />
         </button>
+        <BoutonNotifications variante="icone" classe="lg-cuisine-btn" titre="Notifications de commandes" texte="Soyez prévenu sur cet appareil à chaque nouvelle commande, même quand l'écran est éteint." cible={{ id: "equipe", chemin: "/api/push/equipe" }} />
         <button className="lg-cuisine-btn" aria-label="Se déconnecter" onClick={onQuitter}><Ico nom="deconnexion" /></button>
       </header>
       <main className="lg-cuisine-contenu"><TableauCuisine commandes={commandes} /></main>
