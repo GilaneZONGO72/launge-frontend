@@ -3,6 +3,7 @@ import "../design/tokens.css";
 import "../client/client.css";
 import "./restaurant.css";
 import Ico from "../promos/IconesPromos";
+import BoutonNotifications from "../notifications/BoutonNotifications";
 import Dashboard from "./Dashboard";
 import MenuGestion from "./MenuGestion";
 import Reglages from "./Reglages";
@@ -30,6 +31,7 @@ export default function EspaceGerant(p) {
   const { gerant } = p;
   // Le gérant voit tout ; un membre du personnel ne voit que les onglets de son poste.
   const poste = gerant && gerant.poste;
+  const RECOIT_NOTIF = !poste || ["manager", "caissier", "cuisinier"].includes(poste); // qui est prévenu des nouvelles commandes
   const permis = ongletsDe(poste);
   const ONGLETS = TOUS.filter((o) => permis.includes(o.id));
   const [onglet, setOnglet] = useState(() => permis[0]);
@@ -103,10 +105,12 @@ export default function EspaceGerant(p) {
           </button>
         ))}
       </nav>
+      {RECOIT_NOTIF && <BoutonNotifications variante="nav" titre="Notifications de commandes" texte="Soyez prévenu sur cet appareil à chaque nouvelle commande, même quand l'écran est éteint." cible={{ id: "equipe", chemin: "/api/push/equipe" }} />}
       <div className="lg-principal">
         <header className="lg-haut">
           <span className="lg-avatar">{initiale[0].toUpperCase()}</span>
           <div style={{ flex: 1, minWidth: 0 }}><div className="lg-titre lg-h3" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{titre}</div><div className="lg-legende">{sousTitre}</div></div>
+          {RECOIT_NOTIF && <BoutonNotifications variante="icone" titre="Notifications de commandes" texte="Soyez prévenu sur cet appareil à chaque nouvelle commande, même quand l'écran est éteint." cible={{ id: "equipe", chemin: "/api/push/equipe" }} />}
           <button className="lg-btn lg-btn-rond" onClick={p.onQuitter} aria-label="Se déconnecter"><Ico nom="deconnexion" /></button>
         </header>
         <main className="lg-contenu">
