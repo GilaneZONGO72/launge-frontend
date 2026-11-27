@@ -3,6 +3,7 @@ import Icon from "../design/Icon";
 import "./client.css";
 import PromoPanier from "../promos/PromoPanier";
 import useVitrine from "../promos/useVitrine";
+import { useSessionClient } from "../compte/clientApi";
 
 const fcfa = (n) => Number(n || 0).toLocaleString("fr-FR");
 const MODES = [
@@ -11,7 +12,8 @@ const MODES = [
   { nom: "Espèces", sous: "À régler à la table", icone: "billets" },
 ];
 
-export default function Paiement({ menu, panier, totalPanier, restoId, onRetour, onPayer }) {
+export default function Paiement({ menu, panier, totalPanier, restoId, onRetour, onPayer, onCompte }) {
+  const session = useSessionClient();
   const [mode, setMode] = useState(null);
   const [envoi, setEnvoi] = useState(false);
   const [promo, setPromo] = useState(null); // { code, remise } vérifié par le serveur
@@ -27,7 +29,7 @@ export default function Paiement({ menu, panier, totalPanier, restoId, onRetour,
   const confirmer = async () => {
     if (!mode || envoi) return; // empêche les doubles envois
     setEnvoi(true);
-    try { await onPayer(mode, { code_promo: promo ? promo.code : undefined, telephone: fidelite ? telephone : undefined }); } finally { setEnvoi(false); }
+   try { await onPayer(mode, { code_promo: promo ? promo.code : undefined, telephone: fidelite && !session ? telephone : undefined }); } finally { setEnvoi(false); }
   };
 
   return (
@@ -64,8 +66,15 @@ export default function Paiement({ menu, panier, totalPanier, restoId, onRetour,
           <div className="lg-total-etiquette">Total à régler</div>
           <div className="lg-total-montant">{fcfa(totalPanier - (promo ? promo.remise : 0))}<small>FCFA</small></div>
         </div>
+        {session && (
+          <p className="lg-note" style={{ textAlign: "left", margin: "12px 0 0" }}>Connecté : cette commande sera ajoutée à votre compte{fidelite ? " et vos points y seront crédités" : ""}.</p>
+        )}
+        {!session && onCompte && (
+          <button type="button" className="lg-cp-lien" style={{ margin: "12px 0 0" }} onClick={onCompte}>Se connecter ou créer un compte (facultatif)</button>
+        )}
 
         <h2 className="lg-section-titre">Mode de paiement</h2>
+
         <div className="lg-modes" role="radiogroup" aria-label="Mode de paiement">
           {MODES.map((m) => (
             <button key={m.nom} className="lg-mode" role="radio" aria-checked={mode === m.nom} onClick={() => setMode(m.nom)}>
