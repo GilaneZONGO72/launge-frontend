@@ -14,6 +14,8 @@ import Accueil from "./accueil/Accueil";
 import ConnexionCompte from "./comptes/ConnexionCompte";
 import Inscription from "./comptes/Inscription";
 import EspaceAdmin from "./admin/EspaceAdmin";
+import EspaceClient from "./compte/EspaceClient";
+import { entetesClient } from "./compte/clientApi";
 const API = "https://launge-backend-production.up.railway.app";
 
 // 👉 Remplace ces adresses par tes propres images une fois que tu me les envoies.
@@ -324,6 +326,7 @@ export default function App() {
   const [menuMobileOuvert, setMenuMobileOuvert] = useState(false);
   const audioRef = useRef(null);
   const [refSuivi, setRefSuivi] = useState(null);
+  const [retourCompte, setRetourCompte] = useState("accueil"); // écran où revenir après le compte client
 
   // Charge la police Plus Jakarta Sans (rendu bold/arrondi, vivant, proche des grandes apps de livraison)
   useEffect(() => {
@@ -488,8 +491,8 @@ useEffect(() => {
   };
 
  const passerCommande = async (modePaiement, extras = {}) => {
-    const items = Object.entries(panier).map(([id, qte]) => { const item = menu.find(i => i.id === id); return { id, nom: item.nom, qte, prix: item.prix }; });
-    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement, code_promo: extras.code_promo, telephone: extras.telephone }) });
+    const items = Object.entries(panier).map(([id, qte]) => { const item = menu.find(i => i.id === id); return { id, nom: item.nom, qte, prix: item.prix }; });as
+    const res = await fetch(`${API}/api/commandes`, { method: "POST", headers: { "Content-Type": "application/json", ...entetesClient() }, body: JSON.stringify({ restaurant_id: restoId, numero_table: numeroTable, items, total: totalPanier, mode_paiement: modePaiement, code_promo: extras.code_promo, telephone: extr.telephone }) });
     const data = await res.json(); if (data.error) return alert(data.error);
    setPanier({});
     if (!data.reference_suivi) { setVue("confirmation"); return; }
@@ -538,7 +541,15 @@ useEffect(() => {
       onGerant={() => setVue("login-gerant")}
       onInscription={() => setVue("inscription")}
       onCuisine={() => setVue("login-cuisine")}
+      onCompte={() => { setRetourCompte("accueil"); setVue("compte-client"); }}
     />
+  );
+  if (vue === "compte-client") return (
+    <EspaceClient
+      onRetour={() => setVue(retourCompte)}
+      onSuivi={(ref) => { window.history.pushState({}, "", `/suivi/${ref}`); setRefSuivi(ref); setVue("suivi"); }}
+    />
+  );
   );
   if (vue === "login-gerant") return (
     <ConnexionCompte
@@ -1021,7 +1032,7 @@ if (vue === "menu") return (
   }
 
   if (vue === "paiement") return (
-<Paiement menu={menuClient} panier={panier} totalPanier={totalPanier} restoId={restoId} onRetour={() => setVue("menu")} onPayer={passerCommande} />
+<Paiement menu={menuClient} panier={panier} totalPanier={totalPanier} restoId={restoId} onRetour={() => setVue("menu")} onPayer={passerCommande} onCompte={() => { setRetourCompte("paiement"); setVue("compte-client"); }} />
   );
 
   if (vue === "suivi") return (
